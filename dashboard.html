@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - TempMonitor</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --primary: #00d4ff;
+      --bg-dark: #0a0e27;
+      --bg-card: #141829;
+      --text-light: #e0e0e0;
+      --text-muted: #888888;
+      --success: #00ff88;
+      --warning: #ffcc00;
+      --danger: #ff4444;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, var(--bg-dark) 0%, #1a1f3a 100%);
+      color: var(--text-light);
+      min-height: 100vh;
+      display: flex;
+    }
+
+    /* SIDEBAR */
+    .sidebar {
+      width: 250px;
+      background: var(--bg-card);
+      border-right: 1px solid rgba(0, 212, 255, 0.2);
+      padding: 2rem 1rem;
+      height: 100vh;
+      overflow-y: auto;
+      position: fixed;
+    }
+
+    .logo {
+      font-size: 1.3rem;
+      font-weight: bold;
+      background: linear-gradient(135deg, var(--primary) 0%, #00ff88 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 2rem;
+    }
+
+    .sidebar-nav {
+      list-style: none;
+      margin-bottom: 2rem;
+    }
+
+    .sidebar-nav li {
+      margin-bottom: 0.5rem;
+    }
+
+    .sidebar-nav a {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem;
+      color: var(--text-light);
+      text-decoration: none;
+      border-radius: 8px;
+      transition: all 0.3s;
+    }
+
+    .sidebar-nav a:hover {
+      background: rgba(0, 212, 255, 0.1);
+      color: var(--primary);
+    }
+
+    .sidebar-nav a.active {
+      background: rgba(0, 212, 255, 0.2);
+      color: var(--primary);
+      border-left: 3px solid var(--primary);
+    }
+
+    .logout-btn {
+      width: 100%;
+      padding: 0.75rem;
+      background: rgba(255, 68, 68, 0.1);
+      border: 1px solid var(--danger);
+      color: var(--danger);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-weight: 600;
+    }
+
+    .logout-btn:hover {
+      background: var(--danger);
+      color: white;
+    }
+
+    /* MAIN CONTENT */
+    .main-content {
+      flex: 1;
+      margin-left: 250px;
+      padding: 2rem;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .header h1 {
+      font-size: 2rem;
+      color: var(--primary);
+    }
+
+    .header-info {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+    }
+
+    .user-info {
+      text-align: right;
+    }
+
+    .user-info p {
+      margin: 0.2rem 0;
+      font-size: 0.9rem;
+    }
+
+    .user-email {
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    .btn-add {
+      padding: 0.75rem 1.5rem;
+      background: linear-gradient(135deg, var(--primary) 0%, #00ff88 100%);
+      color: var(--bg-dark);
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+
+    .btn-add:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(0, 212, 255, 0.4);
+    }
+
+    .devices-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .device-card {
+      background: var(--bg-card);
+      border: 1px solid rgba(0, 212, 255, 0.2);
+      padding: 1.5rem;
+      border-radius: 12px;
+      transition: all 0.3s;
+    }
+
+    .device-card:hover {
+      border-color: var(--primary);
+      box-shadow: 0 15px 40px rgba(0, 212, 255, 0.15);
+    }
+
+    .device-card h3 {
+      color: var(--primary);
+      margin-bottom: 0.5rem;
+    }
+
+    .device-info {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+    }
+
+    .temperature-display {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin: 1.5rem 0;
+      padding: 1rem;
+      background: rgba(0, 212, 255, 0.1);
+      border-radius: 8px;
+    }
+
+    .temp-value {
+      font-size: 2rem;
+      font-weight: bold;
+      color: var(--primary);
+    }
+
+    .temp-status {
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+
+    .status-normal {
+      background: rgba(0, 255, 136, 0.2);
+      color: var(--success);
+    }
+
+    .status-warning {
+      background: rgba(255, 204, 0, 0.2);
+      color: var(--warning);
+    }
+
+    .status-critical {
+      background: rgba(255, 68, 68, 0.2);
+      color: var(--danger);
+    }
+
+    .chart-container {
+      position: relative;
+      height: 300px;
+      margin-bottom: 1rem;
+    }
+
+    .device-actions {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+
+    .btn-small {
+      flex: 1;
+      padding: 0.6rem;
+      background: rgba(0, 212, 255, 0.1);
+      border: 1px solid rgba(0, 212, 255, 0.3);
+      color: var(--primary);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-size: 0.85rem;
+    }
+
+    .btn-small:hover {
+      background: rgba(0, 212, 255, 0.2);
+      border-color: var(--primary);
+    }
+
+    .alerts-section {
+      background: var(--bg-card);
+      border: 1px solid rgba(0, 212, 255, 0.2);
+      padding: 1.5rem;
+      border-radius: 12px;
+      margin-top: 2rem;
+    }
+
+    .alerts-section h2 {
+      color: var(--primary);
+      margin-bottom: 1rem;
+    }
+
+    .alert-item {
+      padding: 1rem;
+      background: rgba(0, 0, 0, 0.3);
+      border-left: 3px solid var(--primary);
+      border-radius: 6px;
+      margin-bottom: 0.75rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .alert-item.high {
+      border-left-color: var(--warning);
+    }
+
+    .alert-item.critical {
+      border-left-color: var(--danger);
+    }
+
+    .no-data {
+      text-align: center;
+      padding: 2rem;
+      color: var(--text-muted);
+    }
+
+    @media (max-width: 1024px) {
+      .sidebar {
+        width: 200px;
+      }
+
+      .main-content {
+        margin-left: 200px;
+      }
+
+      .devices-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .sidebar {
+        position: fixed;
+        left: -250px;
+        z-index: 1000;
+        height: 100vh;
+        transition: left 0.3s;
+      }
+
+      .sidebar.active {
+        left: 0;
+      }
+
+      .main-content {
+        margin-left: 0;
+      }
+
+      .header {
+        flex-direction: column;
+      }
+
+      .toggle-sidebar {
+        display: block;
+      }
+    }
+
+    .toggle-sidebar {
+      display: none;
+      background: none;
+      border: none;
+      color: var(--primary);
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="logo">⚡ TempMonitor</div>
+    <ul class="sidebar-nav">
+      <li><a href="#dashboard" class="active">📊 Dashboard</a></li>
+      <li><a href="#devices">🔧 Dispositivos</a></li>
+      <li><a href="#alerts">🚨 Alertas</a></li>
+      <li><a href="#settings">⚙️ Configurações</a></li>
+    </ul>
+    <button class="logout-btn" onclick="logout()">Sair</button>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <div class="main-content">
+    <div class="header">
+      <button class="toggle-sidebar" onclick="toggleSidebar()">☰</button>
+      <h1>Dashboard</h1>
+      <div class="header-info">
+        <div class="user-info">
+          <p>Bem-vindo</p>
+          <p class="user-email" id="userEmail">Carregando...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- DISPOSITIVOS -->
+    <div class="devices-grid" id="devicesContainer">
+      <div class="no-data">Carregando dispositivos...</div>
+    </div>
+
+    <!-- ALERTAS -->
+    <div class="alerts-section">
+      <h2>Alertas Recentes</h2>
+      <div id="alertsContainer">
+        <div class="no-data">Nenhum alerta no momento</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL PARA SIMULAR DADOS -->
+  <div id="simulationModal" style="display: none;">
+    <p>Simulando dados do Wokwi em tempo real...</p>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+    const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let currentUser = null;
+    let charts = {};
+
+    // Verificar autenticação
+    async function checkAuth() {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        window.location.href = 'login.html';
+        return;
+      }
+
+      currentUser = user;
+      document.getElementById('userEmail').textContent = user.email;
+      loadDevices();
+      loadAlerts();
+      startSimulation();
+    }
+
+    // Carregar dispositivos
+    async function loadDevices() {
+      const { data: devices, error } = await supabase
+        .from('devices')
+        .select('*')
+        .eq('user_id', currentUser.id);
+
+      if (error) {
+        console.error('Erro ao carregar dispositivos:', error);
+        return;
+      }
+
+      const container = document.getElementById('devicesContainer');
+
+      if (devices.length === 0) {
+        container.innerHTML = '<div class="no-data">Nenhum dispositivo cadastrado. Adicione um novo!</div>';
+        return;
+      }
+
+      container.innerHTML = '';
+
+      for (const device of devices) {
+        const { data: readings } = await supabase
+          .from('temperature_readings')
+          .select('temperature, status, timestamp')
+          .eq('device_id', device.id)
+          .order('timestamp', { ascending: false })
+          .limit(20);
+
+        const currentReading = readings?.[0];
+
+        const card = document.createElement('div');
+        card.className = 'device-card';
+        card.innerHTML = `
+          <h3>${device.name}</h3>
+          <p class="device-info">${device.location || 'Localização não definida'}</p>
+          <div class="temperature-display">
+            <div>
+              <div class="temp-value">${currentReading?.temperature.toFixed(1) || '--'}°C</div>
+              <p style="font-size: 0.8rem; color: var(--text-muted);">Temperatura Atual</p>
+            </div>
+            <span class="temp-status status-${currentReading?.status || 'normal'}">
+              ${(currentReading?.status || 'normal').toUpperCase()}
+            </span>
+          </div>
+          <div class="chart-container">
+            <canvas id="chart-${device.id}"></canvas>
+          </div>
+          <div class="device-actions">
+            <button class="btn-small" onclick="editDevice('${device.id}')">Editar</button>
+            <button class="btn-small" onclick="deleteDevice('${device.id}')">Remover</button>
+          </div>
+        `;
+
+        container.appendChild(card);
+
+        // Criar gráfico
+        if (readings && readings.length > 0) {
+          createChart(device.id, readings);
+        }
+      }
+    }
+
+    // Criar gráfico de temperatura
+    function createChart(deviceId, readings) {
+      const ctx = document.getElementById(`chart-${deviceId}`).getContext('2d');
+      const labels = readings.reverse().map(r => new Date(r.timestamp).toLocaleTimeString());
+      const data = readings.map(r => r.temperature);
+
+      charts[deviceId] = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Temperatura (°C)',
+            data,
+            borderColor: '#00d4ff',
+            backgroundColor: 'rgba(0, 212, 255, 0.1)',
+            borderWidth: 2,
+            fill: true,
+            tension: 0.4,
+            pointRadius: 3,
+            pointBackgroundColor: '#00d4ff'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            y: {
+              beginAtZero: false,
+              ticks: { color: '#888888' },
+              grid: { color: 'rgba(0, 212, 255, 0.1)' }
+            },
+            x: {
+              ticks: { color: '#888888' },
+              grid: { color: 'rgba(0, 212, 255, 0.1)' }
+            }
+          }
+        }
+      });
+    }
+
+    // Carregar alertas
+    async function loadAlerts() {
+      const { data: alerts, error } = await supabase
+        .from('alerts')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (error) {
+        console.error('Erro ao carregar alertas:', error);
+        return;
+      }
+
+      const container = document.getElementById('alertsContainer');
+
+      if (alerts.length === 0) {
+        container.innerHTML = '<div class="no-data">Nenhum alerta no momento</div>';
+        return;
+      }
+
+      container.innerHTML = '';
+
+      alerts.forEach(alert => {
+        const item = document.createElement('div');
+        item.className = `alert-item ${alert.alert_type}`;
+        item.innerHTML = `
+          <div>
+            <strong>${alert.message}</strong>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">
+              ${new Date(alert.created_at).toLocaleString()}
+            </p>
+          </div>
+          ${!alert.is_read ? '<span style="background: var(--primary); width: 8px; height: 8px; border-radius: 50%;"></span>' : ''}
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    // Simular dados do Wokwi
+    function startSimulation() {
+      console.log('[v0] Iniciando simulação de dados do Wokwi...');
+      setInterval(async () => {
+        const { data: devices } = await supabase
+          .from('devices')
+          .select('id, min_temp, max_temp')
+          .eq('user_id', currentUser.id);
+
+        if (devices) {
+          for (const device of devices) {
+            const simulatedTemp = device.min_temp + Math.random() * (device.max_temp - device.min_temp);
+            const status = simulatedTemp > device.max_temp * 0.9 ? 'critical' : 
+                          simulatedTemp > device.max_temp * 0.75 ? 'warning' : 'normal';
+
+            await supabase.from('temperature_readings').insert({
+              device_id: device.id,
+              temperature: parseFloat(simulatedTemp.toFixed(2)),
+              humidity: 40 + Math.random() * 40,
+              status
+            });
+          }
+        }
+
+        loadDevices();
+        loadAlerts();
+      }, 5000); // Atualizar a cada 5 segundos
+    }
+
+    // Funções auxiliares
+    function editDevice(deviceId) {
+      alert('Editar dispositivo: ' + deviceId);
+    }
+
+    async function deleteDevice(deviceId) {
+      if (confirm('Tem certeza que deseja remover este dispositivo?')) {
+        await supabase.from('devices').delete().eq('id', deviceId);
+        loadDevices();
+      }
+    }
+
+    function toggleSidebar() {
+      document.querySelector('.sidebar').classList.toggle('active');
+    }
+
+    async function logout() {
+      await supabase.auth.signOut();
+      window.location.href = 'login.html';
+    }
+
+    checkAuth();
+  </script>
+</body>
+</html>

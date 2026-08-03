@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TempMonitor - Sistema de Monitoramento IoT</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --primary: #00d4ff;
+      --primary-dark: #0099cc;
+      --bg-dark: #0a0e27;
+      --bg-card: #141829;
+      --text-light: #e0e0e0;
+      --text-muted: #888888;
+      --success: #00ff88;
+      --warning: #ffcc00;
+      --danger: #ff4444;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, var(--bg-dark) 0%, #1a1f3a 100%);
+      color: var(--text-light);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* NAVBAR */
+    nav {
+      background: rgba(20, 24, 41, 0.95);
+      backdrop-filter: blur(10px);
+      padding: 1rem 2rem;
+      border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      font-size: 1.5rem;
+      font-weight: bold;
+      background: linear-gradient(135deg, var(--primary) 0%, #00ff88 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 2rem;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--text-light);
+      text-decoration: none;
+      transition: color 0.3s;
+      font-size: 0.95rem;
+    }
+
+    .nav-links a:hover {
+      color: var(--primary);
+    }
+
+    .nav-buttons {
+      display: flex;
+      gap: 1rem;
+    }
+
+    .btn {
+      padding: 0.6rem 1.5rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s;
+      font-size: 0.9rem;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: var(--bg-dark);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(0, 212, 255, 0.4);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      border: 1px solid var(--primary);
+      color: var(--primary);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(0, 212, 255, 0.1);
+    }
+
+    /* MAIN CONTENT */
+    main {
+      flex: 1;
+      padding: 4rem 2rem;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .hero {
+      text-align: center;
+      margin-bottom: 4rem;
+    }
+
+    .hero h1 {
+      font-size: 3.5rem;
+      margin-bottom: 1rem;
+      background: linear-gradient(135deg, var(--primary) 0%, #00ff88 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero p {
+      font-size: 1.2rem;
+      color: var(--text-muted);
+      max-width: 600px;
+      margin: 0 auto 2rem;
+      line-height: 1.6;
+    }
+
+    .hero-buttons {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 2rem;
+      margin-bottom: 4rem;
+    }
+
+    .feature-card {
+      background: var(--bg-card);
+      border: 1px solid rgba(0, 212, 255, 0.2);
+      padding: 2rem;
+      border-radius: 12px;
+      transition: all 0.3s;
+      text-align: center;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-5px);
+      border-color: var(--primary);
+      box-shadow: 0 15px 40px rgba(0, 212, 255, 0.15);
+    }
+
+    .feature-icon {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .feature-card h3 {
+      margin-bottom: 0.5rem;
+      color: var(--primary);
+    }
+
+    .feature-card p {
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .about-section {
+      background: var(--bg-card);
+      border: 1px solid rgba(0, 212, 255, 0.2);
+      padding: 3rem;
+      border-radius: 12px;
+      margin-bottom: 4rem;
+    }
+
+    .about-section h2 {
+      color: var(--primary);
+      margin-bottom: 1.5rem;
+      font-size: 2rem;
+    }
+
+    .about-section p {
+      color: var(--text-muted);
+      line-height: 1.8;
+      margin-bottom: 1rem;
+    }
+
+    /* FOOTER */
+    footer {
+      background: rgba(20, 24, 41, 0.95);
+      backdrop-filter: blur(10px);
+      border-top: 1px solid rgba(0, 212, 255, 0.2);
+      padding: 2rem;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    footer p {
+      margin-bottom: 0.5rem;
+    }
+
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 2rem;
+      margin-top: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .footer-links a {
+      color: var(--primary);
+      text-decoration: none;
+      transition: color 0.3s;
+    }
+
+    .footer-links a:hover {
+      color: var(--text-light);
+    }
+
+    @media (max-width: 768px) {
+      .hero h1 {
+        font-size: 2rem;
+      }
+
+      nav {
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .nav-links {
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      main {
+        padding: 2rem 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- NAVBAR -->
+  <nav>
+    <div class="logo">⚡ TempMonitor</div>
+    <ul class="nav-links">
+      <li><a href="#inicio">Início</a></li>
+      <li><a href="#recursos">Recursos</a></li>
+      <li><a href="#sobre">Sobre</a></li>
+    </ul>
+    <div class="nav-buttons">
+      <button class="btn btn-secondary" onclick="window.location.href='login.html'">Login</button>
+      <button class="btn btn-primary" onclick="window.location.href='signup.html'">Cadastro</button>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main>
+    <div class="container">
+      <!-- HERO SECTION -->
+      <section class="hero" id="inicio">
+        <h1>Monitoramento de Temperatura em Tempo Real</h1>
+        <p>Sistema inteligente de monitoramento IoT com alertas automáticos e análises em tempo real para sua aplicação industrial.</p>
+        <div class="hero-buttons">
+          <button class="btn btn-primary" onclick="window.location.href='signup.html'">Começar Agora</button>
+          <button class="btn btn-secondary">Ver Demo</button>
+        </div>
+      </section>
+
+      <!-- FEATURES SECTION -->
+      <section class="features" id="recursos">
+        <div class="feature-card">
+          <div class="feature-icon">📊</div>
+          <h3>Monitoramento em Tempo Real</h3>
+          <p>Acompanhe a temperatura dos seus dispositivos com atualização contínua e gráficos interativos.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">🚨</div>
+          <h3>Alertas Automáticos</h3>
+          <p>Receba notificações instantâneas quando a temperatura ultrapassa os limites estabelecidos.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">🔒</div>
+          <h3>Segurança de Dados</h3>
+          <p>Autenticação segura com Supabase e criptografia de dados para proteger suas informações.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">📱</div>
+          <h3>Interface Responsiva</h3>
+          <p>Acesse o dashboard em qualquer dispositivo com interface otimizada para mobile e desktop.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">⚙️</div>
+          <h3>Configuração Flexível</h3>
+          <p>Configure facilmente os limites de temperatura e personalize suas preferências de alerta.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">📈</div>
+          <h3>Histórico Completo</h3>
+          <p>Mantenha um registro detalhado de todas as leituras para análise e relatórios.</p>
+        </div>
+      </section>
+
+      <!-- ABOUT SECTION -->
+      <section class="about-section" id="sobre">
+        <h2>Sobre o TempMonitor</h2>
+        <p>
+          O TempMonitor é um sistema de monitoramento IoT desenvolvido para aplicações industriais que exigem 
+          precisão e confiabilidade no controle de temperatura. Utilizando tecnologia de ponta, o sistema 
+          permite que você tenha controle total sobre os seus dispositivos de monitoramento.
+        </p>
+        <p>
+          Integrado com o Wokwi para prototipagem de hardware e Supabase para armazenamento seguro de dados, 
+          o TempMonitor oferece uma solução completa e escalável para o seu negócio.
+        </p>
+        <p>
+          Desenvolvido com foco em usabilidade e performance, a plataforma oferece uma experiência 
+          intuitiva tanto para técnicos quanto para gerentes, permitindo monitoramento eficiente e tomada 
+          de decisões rápida baseada em dados em tempo real.
+        </p>
+      </section>
+    </div>
+  </main>
+
+  <!-- FOOTER -->
+  <footer>
+    <p>&copy; 2024 TempMonitor. Todos os direitos reservados.</p>
+    <div class="footer-links">
+      <a href="#privacy">Privacidade</a>
+      <a href="#terms">Termos de Serviço</a>
+      <a href="#contact">Contato</a>
+      <a href="#about">Sobre</a>
+    </div>
+  </footer>
+</body>
+</html>
