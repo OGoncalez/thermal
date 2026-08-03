@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cadastro - TempMonitor</title>
+  <title>Cadastro - TempControl</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     * {
@@ -12,91 +12,50 @@
       box-sizing: border-box;
     }
 
-    :root {
-      --primary: #00d4ff;
-      --primary-dark: #0099cc;
-      --bg-dark: #0a0e27;
-      --bg-card: #141829;
-      --text-light: #e0e0e0;
-      --text-muted: #888888;
-      --danger: #ff4444;
-      --success: #00ff88;
-    }
-
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(135deg, var(--bg-dark) 0%, #1a1f3a 100%);
-      color: var(--text-light);
-      min-height: 100vh;
+      background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+      color: #e0e7ff;
       display: flex;
       align-items: center;
       justify-content: center;
+      min-height: 100vh;
+      padding: 1rem;
     }
 
-    nav {
-      position: fixed;
-      top: 0;
+    .container {
       width: 100%;
-      background: rgba(20, 24, 41, 0.95);
+      max-width: 450px;
+    }
+
+    .signup-box {
+      background: rgba(30, 41, 59, 0.8);
+      border: 1px solid rgba(34, 197, 194, 0.2);
+      border-radius: 1rem;
+      padding: 3rem 2rem;
       backdrop-filter: blur(10px);
-      padding: 1rem 2rem;
-      border-bottom: 1px solid rgba(0, 212, 255, 0.2);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      z-index: 100;
     }
 
     .logo {
-      font-size: 1.5rem;
+      text-align: center;
+      margin-bottom: 2rem;
+      font-size: 2rem;
       font-weight: bold;
-      background: linear-gradient(135deg, var(--primary) 0%, #00ff88 100%);
+      background: linear-gradient(135deg, #22c55e 0%, #06b6d4 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
     }
 
-    .nav-links {
-      display: flex;
-      gap: 2rem;
-      list-style: none;
-    }
-
-    .nav-links a {
-      color: var(--text-light);
-      text-decoration: none;
-      transition: color 0.3s;
-    }
-
-    .nav-links a:hover {
-      color: var(--primary);
-    }
-
-    .container {
-      padding: 2rem;
-      width: 100%;
-      max-width: 450px;
-      margin-top: 60px;
-    }
-
-    .form-container {
-      background: var(--bg-card);
-      border: 1px solid rgba(0, 212, 255, 0.2);
-      padding: 2.5rem;
-      border-radius: 12px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-    }
-
-    .form-container h2 {
+    h1 {
       text-align: center;
+      font-size: 1.8rem;
       margin-bottom: 0.5rem;
-      color: var(--primary);
-      font-size: 2rem;
     }
 
-    .form-container p {
+    .subtitle {
       text-align: center;
-      color: var(--text-muted);
+      color: #a5b4fc;
       margin-bottom: 2rem;
       font-size: 0.95rem;
     }
@@ -105,222 +64,178 @@
       margin-bottom: 1.5rem;
     }
 
-    .form-group label {
+    label {
       display: block;
       margin-bottom: 0.5rem;
-      font-size: 0.9rem;
-      color: var(--text-light);
-      font-weight: 500;
+      font-weight: 600;
+      color: #22c55e;
     }
 
-    .form-group input {
+    input {
       width: 100%;
-      padding: 0.85rem;
-      border: 1px solid rgba(0, 212, 255, 0.3);
-      background: rgba(0, 0, 0, 0.3);
-      color: var(--text-light);
-      border-radius: 8px;
-      font-size: 0.95rem;
+      padding: 0.75rem;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(34, 197, 194, 0.3);
+      border-radius: 0.5rem;
+      color: #e0e7ff;
+      font-size: 1rem;
       transition: all 0.3s;
     }
 
-    .form-group input:focus {
+    input:focus {
       outline: none;
-      border-color: var(--primary);
-      box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
+      border-color: #22c55e;
+      box-shadow: 0 0 10px rgba(34, 197, 94, 0.2);
+      background: rgba(15, 23, 42, 1);
     }
 
     .password-requirements {
+      background: rgba(15, 23, 42, 0.5);
+      border: 1px solid rgba(34, 197, 194, 0.2);
+      border-radius: 0.5rem;
+      padding: 1rem;
       margin-top: 0.5rem;
-      padding: 0.75rem;
-      background: rgba(0, 0, 0, 0.2);
-      border-radius: 6px;
       font-size: 0.85rem;
-      color: var(--text-muted);
     }
 
     .requirement {
       display: flex;
       align-items: center;
-      margin: 0.3rem 0;
+      margin-bottom: 0.5rem;
+      color: #a5b4fc;
     }
 
     .requirement.met {
-      color: var(--success);
+      color: #22c55e;
     }
 
     .requirement-icon {
       margin-right: 0.5rem;
+      font-size: 0.9rem;
     }
 
     .btn {
       width: 100%;
-      padding: 0.85rem;
+      padding: 0.75rem;
+      background: linear-gradient(135deg, #22c55e 0%, #06b6d4 100%);
+      color: #0a0e27;
       border: none;
-      background: linear-gradient(135deg, var(--primary) 0%, #00ff88 100%);
-      color: var(--bg-dark);
-      border-radius: 8px;
+      border-radius: 0.5rem;
+      font-size: 1rem;
       font-weight: 600;
       cursor: pointer;
       transition: all 0.3s;
-      font-size: 1rem;
+      margin-top: 1rem;
     }
 
     .btn:hover {
       transform: translateY(-2px);
-      box-shadow: 0 10px 25px rgba(0, 212, 255, 0.4);
+      box-shadow: 0 10px 25px rgba(34, 197, 94, 0.3);
     }
 
     .btn:disabled {
-      opacity: 0.6;
+      opacity: 0.7;
       cursor: not-allowed;
       transform: none;
     }
 
-    .spinner {
-      display: inline-block;
-      width: 16px;
-      height: 16px;
-      border: 2px solid rgba(10, 14, 39, 0.3);
-      border-top: 2px solid var(--bg-dark);
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      margin-right: 0.5rem;
+    .message {
+      padding: 1rem;
+      border-radius: 0.5rem;
+      margin-bottom: 1rem;
+      display: none;
     }
 
-    @keyframes spin {
-      to { transform: rotate(360deg); }
+    .message.error {
+      background: rgba(239, 68, 68, 0.2);
+      border: 1px solid rgba(239, 68, 68, 0.5);
+      color: #fca5a5;
+      display: block;
+    }
+
+    .message.success {
+      background: rgba(34, 197, 94, 0.2);
+      border: 1px solid rgba(34, 197, 94, 0.5);
+      color: #86efac;
+      display: block;
     }
 
     .login-link {
       text-align: center;
       margin-top: 1.5rem;
-      color: var(--text-muted);
-      font-size: 0.9rem;
+      color: #a5b4fc;
     }
 
     .login-link a {
-      color: var(--primary);
+      color: #22c55e;
       text-decoration: none;
       font-weight: 600;
       transition: color 0.3s;
     }
 
     .login-link a:hover {
-      color: var(--text-light);
+      color: #06b6d4;
     }
 
-    .error-message {
-      background: rgba(255, 68, 68, 0.1);
-      border-left: 3px solid var(--danger);
-      color: var(--danger);
-      padding: 0.75rem;
-      border-radius: 6px;
-      margin-bottom: 1rem;
-      font-size: 0.9rem;
+    .loading {
       display: none;
+      text-align: center;
+      color: #a5b4fc;
+      margin-top: 1rem;
     }
 
-    .success-message {
-      background: rgba(0, 255, 136, 0.1);
-      border-left: 3px solid var(--success);
-      color: var(--success);
-      padding: 0.75rem;
-      border-radius: 6px;
-      margin-bottom: 1rem;
-      font-size: 0.9rem;
-      display: none;
-    }
-
-    @media (max-width: 640px) {
-      nav {
-        flex-direction: column;
-        gap: 1rem;
+    @media (max-width: 480px) {
+      .signup-box {
+        padding: 2rem 1.5rem;
       }
 
-      .nav-links {
-        flex-direction: column;
-        gap: 0.5rem;
-      }
-
-      .form-container {
-        padding: 1.5rem;
-      }
-
-      .form-container h2 {
+      h1 {
         font-size: 1.5rem;
       }
     }
   </style>
 </head>
 <body>
-  <nav>
-    <div class="logo">⚡ TempMonitor</div>
-    <ul class="nav-links">
-      <li><a href="index.html">Início</a></li>
-      <li><a href="index.html#recursos">Recursos</a></li>
-    </ul>
-  </nav>
-
   <div class="container">
-    <div class="form-container">
-      <h2>Cadastro</h2>
-      <p>Crie sua conta TempMonitor</p>
+    <div class="signup-box">
+      <div class="logo">🌡️ TempControl</div>
+      <h1>Cadastro</h1>
+      <p class="subtitle">Crie sua conta para começar</p>
 
-      <div class="error-message" id="errorMessage"></div>
-      <div class="success-message" id="successMessage"></div>
+      <div id="messageBox" class="message"></div>
 
       <form id="signupForm">
         <div class="form-group">
+          <label for="fullName">Nome Completo</label>
+          <input type="text" id="fullName" required placeholder="Seu nome">
+        </div>
+
+        <div class="form-group">
           <label for="email">Email</label>
-          <input 
-            type="email" 
-            id="email" 
-            name="email" 
-            required 
-            placeholder="seu@email.com"
-          >
+          <input type="email" id="email" required placeholder="seu@email.com">
         </div>
 
         <div class="form-group">
           <label for="password">Senha</label>
-          <input 
-            type="password" 
-            id="password" 
-            name="password" 
-            required 
-            placeholder="Mínimo 6 caracteres"
-          >
+          <input type="password" id="password" required placeholder="Mínimo 6 caracteres">
           <div class="password-requirements">
-            <div class="requirement" id="reqLength">
+            <div class="requirement" id="req-length">
               <span class="requirement-icon">○</span>
               <span>Mínimo 6 caracteres</span>
             </div>
-            <div class="requirement" id="reqUppercase">
+            <div class="requirement" id="req-upper">
               <span class="requirement-icon">○</span>
               <span>Uma letra maiúscula</span>
             </div>
-            <div class="requirement" id="reqNumber">
+            <div class="requirement" id="req-number">
               <span class="requirement-icon">○</span>
               <span>Um número</span>
             </div>
           </div>
         </div>
 
-        <div class="form-group">
-          <label for="confirmPassword">Confirmar Senha</label>
-          <input 
-            type="password" 
-            id="confirmPassword" 
-            name="confirmPassword" 
-            required 
-            placeholder="Confirme sua senha"
-          >
-        </div>
-
-        <button type="submit" class="btn" id="submitBtn">
-          Criar Conta
-        </button>
+        <button type="submit" class="btn">Criar Conta</button>
+        <div class="loading" id="loading">Carregando...</div>
       </form>
 
       <div class="login-link">
@@ -330,110 +245,114 @@
   </div>
 
   <script>
-    const SUPABASE_URL = 'YOUR_SUPABASE_URL';
-    const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
-
+    // ALTERE PARA SUAS CREDENCIAIS SUPABASE
+    const SUPABASE_URL = 'https://seu-projeto.supabase.co';
+    const SUPABASE_ANON_KEY = 'sua-chave-anonima';
+    
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    const form = document.getElementById('signupForm');
+    const signupForm = document.getElementById('signupForm');
+    const messageBox = document.getElementById('messageBox');
+    const loadingDiv = document.getElementById('loading');
     const passwordInput = document.getElementById('password');
-    const errorDiv = document.getElementById('errorMessage');
-    const successDiv = document.getElementById('successMessage');
-    const submitBtn = document.getElementById('submitBtn');
 
-    // Validação de senha em tempo real
-    passwordInput.addEventListener('input', () => {
-      const password = passwordInput.value;
+    passwordInput.addEventListener('input', (e) => {
+      const password = e.target.value;
 
-      const lengthReq = document.getElementById('reqLength');
-      const uppercaseReq = document.getElementById('reqUppercase');
-      const numberReq = document.getElementById('reqNumber');
+      const req1 = password.length >= 6;
+      const req2 = /[A-Z]/.test(password);
+      const req3 = /[0-9]/.test(password);
 
-      if (password.length >= 6) {
-        lengthReq.classList.add('met');
-        lengthReq.querySelector('.requirement-icon').textContent = '✓';
-      } else {
-        lengthReq.classList.remove('met');
-        lengthReq.querySelector('.requirement-icon').textContent = '○';
-      }
-
-      if (/[A-Z]/.test(password)) {
-        uppercaseReq.classList.add('met');
-        uppercaseReq.querySelector('.requirement-icon').textContent = '✓';
-      } else {
-        uppercaseReq.classList.remove('met');
-        uppercaseReq.querySelector('.requirement-icon').textContent = '○';
-      }
-
-      if (/[0-9]/.test(password)) {
-        numberReq.classList.add('met');
-        numberReq.querySelector('.requirement-icon').textContent = '✓';
-      } else {
-        numberReq.classList.remove('met');
-        numberReq.querySelector('.requirement-icon').textContent = '○';
-      }
+      updateRequirement('req-length', req1);
+      updateRequirement('req-upper', req2);
+      updateRequirement('req-number', req3);
     });
 
-    form.addEventListener('submit', async (e) => {
+    function updateRequirement(id, met) {
+      const element = document.getElementById(id);
+      if (met) {
+        element.classList.add('met');
+        element.querySelector('.requirement-icon').textContent = '✓';
+      } else {
+        element.classList.remove('met');
+        element.querySelector('.requirement-icon').textContent = '○';
+      }
+    }
+
+    signupForm.addEventListener('submit', async (e) => {
       e.preventDefault();
 
+      const fullName = document.getElementById('fullName').value;
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
-      const confirmPassword = document.getElementById('confirmPassword').value;
 
-      errorDiv.style.display = 'none';
-      successDiv.style.display = 'none';
+      console.log('[v0] Tentando cadastro com email:', email);
 
-      // Validações
-      if (password.length < 6) {
-        errorDiv.textContent = 'A senha deve ter no mínimo 6 caracteres.';
-        errorDiv.style.display = 'block';
+      if (password.length < 6 || !/[A-Z]/.test(password) || !/[0-9]/.test(password)) {
+        messageBox.className = 'message error';
+        messageBox.textContent = 'A senha não atende aos requisitos de segurança.';
         return;
       }
 
-      if (!/[A-Z]/.test(password)) {
-        errorDiv.textContent = 'A senha deve conter pelo menos uma letra maiúscula.';
-        errorDiv.style.display = 'block';
-        return;
-      }
-
-      if (!/[0-9]/.test(password)) {
-        errorDiv.textContent = 'A senha deve conter pelo menos um número.';
-        errorDiv.style.display = 'block';
-        return;
-      }
-
-      if (password !== confirmPassword) {
-        errorDiv.textContent = 'As senhas não conferem.';
-        errorDiv.style.display = 'block';
-        return;
-      }
-
-      submitBtn.disabled = true;
-      submitBtn.innerHTML = '<span class="spinner"></span>Criando conta...';
+      loadingDiv.style.display = 'block';
+      messageBox.className = 'message';
+      messageBox.textContent = '';
 
       try {
         const { data, error } = await supabase.auth.signUp({
           email,
-          password
+          password,
+          options: {
+            data: {
+              full_name: fullName
+            }
+          }
         });
 
         if (error) {
-          throw new Error(error.message);
+          console.error('[v0] Erro de cadastro:', error.message);
+          throw error;
         }
 
-        successDiv.textContent = 'Conta criada com sucesso! Verifique seu email para confirmar.';
-        successDiv.style.display = 'block';
+        console.log('[v0] Cadastro bem-sucedido:', data.user.email);
+        
+        const { error: insertError } = await supabase
+          .from('users')
+          .insert({
+            id: data.user.id,
+            email,
+            full_name: fullName
+          });
+
+        if (insertError) {
+          console.warn('[v0] Aviso ao criar entrada de usuário:', insertError);
+        }
+
+        messageBox.className = 'message success';
+        messageBox.textContent = 'Cadastro realizado com sucesso! Redirecionando para login...';
 
         setTimeout(() => {
           window.location.href = 'login.html';
         }, 2000);
 
       } catch (error) {
-        errorDiv.textContent = error.message || 'Erro ao criar conta. Tente novamente.';
-        errorDiv.style.display = 'block';
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = 'Criar Conta';
+        console.error('[v0] Erro:', error);
+        messageBox.className = 'message error';
+        messageBox.textContent = error.message || 'Erro ao criar conta. Tente novamente.';
+      } finally {
+        loadingDiv.style.display = 'none';
+      }
+    });
+
+    window.addEventListener('load', async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          console.log('[v0] Usuário já está logado');
+          window.location.href = 'dashboard.html';
+        }
+      } catch (error) {
+        console.error('[v0] Erro ao verificar sessão:', error);
       }
     });
   </script>

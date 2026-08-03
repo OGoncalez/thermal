@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard - TempMonitor</title>
+  <title>Dashboard - TempControl</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mqtt@5.8.0/dist/mqtt.min.js"></script>
@@ -14,99 +14,88 @@
       box-sizing: border-box;
     }
 
-    :root {
-      --primary: #00d4ff;
-      --bg-dark: #0a0e27;
-      --bg-card: #141829;
-      --text-light: #e0e0e0;
-      --text-muted: #888888;
-      --success: #00ff88;
-      --warning: #ffcc00;
-      --danger: #ff4444;
-    }
-
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(135deg, var(--bg-dark) 0%, #1a1f3a 100%);
-      color: var(--text-light);
-      min-height: 100vh;
-      display: flex;
+      background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+      color: #e0e7ff;
+      line-height: 1.6;
     }
 
-    /* SIDEBAR */
+    .dashboard-container {
+      display: flex;
+      min-height: 100vh;
+    }
+
     .sidebar {
       width: 250px;
-      background: var(--bg-card);
-      border-right: 1px solid rgba(0, 212, 255, 0.2);
+      background: rgba(10, 14, 39, 0.95);
+      border-right: 1px solid rgba(34, 197, 194, 0.2);
       padding: 2rem 1rem;
-      height: 100vh;
       overflow-y: auto;
       position: fixed;
+      height: 100vh;
+    }
+
+    .main-content {
+      flex: 1;
+      margin-left: 250px;
+      padding: 2rem;
+      overflow-y: auto;
     }
 
     .logo {
-      font-size: 1.3rem;
+      font-size: 1.5rem;
       font-weight: bold;
-      background: linear-gradient(135deg, var(--primary) 0%, #00ff88 100%);
+      background: linear-gradient(135deg, #22c55e 0%, #06b6d4 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
       margin-bottom: 2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
     }
 
-    .sidebar-nav {
+    .nav-menu {
       list-style: none;
       margin-bottom: 2rem;
     }
 
-    .sidebar-nav li {
+    .nav-menu li {
       margin-bottom: 0.5rem;
     }
 
-    .sidebar-nav a {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      padding: 0.75rem;
-      color: var(--text-light);
+    .nav-menu a {
+      color: #a5b4fc;
       text-decoration: none;
-      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      border-radius: 0.5rem;
+      display: block;
       transition: all 0.3s;
     }
 
-    .sidebar-nav a:hover {
-      background: rgba(0, 212, 255, 0.1);
-      color: var(--primary);
-    }
-
-    .sidebar-nav a.active {
-      background: rgba(0, 212, 255, 0.2);
-      color: var(--primary);
-      border-left: 3px solid var(--primary);
+    .nav-menu a:hover,
+    .nav-menu a.active {
+      background: rgba(34, 197, 194, 0.2);
+      color: #22c55e;
     }
 
     .logout-btn {
       width: 100%;
       padding: 0.75rem;
-      background: rgba(255, 68, 68, 0.1);
-      border: 1px solid var(--danger);
-      color: var(--danger);
-      border-radius: 8px;
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      color: white;
+      border: none;
+      border-radius: 0.5rem;
       cursor: pointer;
-      transition: all 0.3s;
       font-weight: 600;
+      transition: all 0.3s;
+      margin-top: auto;
     }
 
     .logout-btn:hover {
-      background: var(--danger);
-      color: white;
-    }
-
-    /* MAIN CONTENT */
-    .main-content {
-      flex: 1;
-      margin-left: 250px;
-      padding: 2rem;
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(239, 68, 68, 0.3);
     }
 
     .header {
@@ -114,185 +103,224 @@
       justify-content: space-between;
       align-items: center;
       margin-bottom: 2rem;
-      flex-wrap: wrap;
-      gap: 1rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid rgba(34, 197, 194, 0.2);
     }
 
     .header h1 {
       font-size: 2rem;
-      color: var(--primary);
+      background: linear-gradient(135deg, #22c55e 0%, #06b6d4 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
     }
 
-    .header-info {
-      display: flex;
-      gap: 1rem;
-      align-items: center;
-    }
-
-    .user-info {
-      text-align: right;
-    }
-
-    .user-info p {
-      margin: 0.2rem 0;
+    .mqtt-status {
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
       font-size: 0.9rem;
-    }
-
-    .user-email {
-      color: var(--primary);
       font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
     }
 
-    .btn-add {
-      padding: 0.75rem 1.5rem;
-      background: linear-gradient(135deg, var(--primary) 0%, #00ff88 100%);
-      color: var(--bg-dark);
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: 600;
-      transition: all 0.3s;
+    .mqtt-status.connected {
+      background: rgba(34, 197, 94, 0.2);
+      color: #86efac;
+      border: 1px solid rgba(34, 197, 94, 0.5);
     }
 
-    .btn-add:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 10px 25px rgba(0, 212, 255, 0.4);
+    .mqtt-status.disconnected {
+      background: rgba(239, 68, 68, 0.2);
+      color: #fca5a5;
+      border: 1px solid rgba(239, 68, 68, 0.5);
     }
 
-    .devices-grid {
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .grid-container {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
       gap: 2rem;
-      margin-bottom: 2rem;
+      margin-bottom: 3rem;
     }
 
     .device-card {
-      background: var(--bg-card);
-      border: 1px solid rgba(0, 212, 255, 0.2);
-      padding: 1.5rem;
-      border-radius: 12px;
+      background: rgba(30, 41, 59, 0.6);
+      border: 1px solid rgba(34, 197, 194, 0.2);
+      border-radius: 1rem;
+      padding: 2rem;
       transition: all 0.3s;
+      backdrop-filter: blur(10px);
     }
 
     .device-card:hover {
-      border-color: var(--primary);
-      box-shadow: 0 15px 40px rgba(0, 212, 255, 0.15);
+      border-color: rgba(34, 197, 194, 0.8);
+      transform: translateY(-5px);
+      box-shadow: 0 20px 40px rgba(34, 197, 194, 0.1);
     }
 
-    .device-card h3 {
-      color: var(--primary);
-      margin-bottom: 0.5rem;
-    }
-
-    .device-info {
-      color: var(--text-muted);
-      font-size: 0.9rem;
-      margin-bottom: 1rem;
-    }
-
-    .temperature-display {
+    .device-header {
       display: flex;
-      align-items: center;
       justify-content: space-between;
-      margin: 1.5rem 0;
-      padding: 1rem;
-      background: rgba(0, 212, 255, 0.1);
-      border-radius: 8px;
+      align-items: start;
+      margin-bottom: 1.5rem;
     }
 
-    .temp-value {
-      font-size: 2rem;
-      font-weight: bold;
-      color: var(--primary);
+    .device-name {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: #22c55e;
     }
 
-    .temp-status {
-      padding: 0.5rem 1rem;
-      border-radius: 6px;
-      font-size: 0.9rem;
+    .status-badge {
+      padding: 0.4rem 0.8rem;
+      border-radius: 0.3rem;
+      font-size: 0.85rem;
       font-weight: 600;
     }
 
-    .status-normal {
-      background: rgba(0, 255, 136, 0.2);
-      color: var(--success);
+    .status-badge.normal {
+      background: rgba(34, 197, 94, 0.2);
+      color: #86efac;
     }
 
-    .status-warning {
-      background: rgba(255, 204, 0, 0.2);
-      color: var(--warning);
+    .status-badge.warning {
+      background: rgba(251, 146, 60, 0.2);
+      color: #fed7aa;
     }
 
-    .status-critical {
-      background: rgba(255, 68, 68, 0.2);
-      color: var(--danger);
+    .status-badge.critical {
+      background: rgba(239, 68, 68, 0.2);
+      color: #fca5a5;
+    }
+
+    .temperature-display {
+      font-size: 3rem;
+      font-weight: bold;
+      background: linear-gradient(135deg, #22c55e 0%, #06b6d4 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 1rem;
+    }
+
+    .device-info {
+      background: rgba(15, 23, 42, 0.5);
+      border: 1px solid rgba(34, 197, 194, 0.2);
+      border-radius: 0.5rem;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      font-size: 0.95rem;
+    }
+
+    .device-info-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.5rem;
+      color: #a5b4fc;
+    }
+
+    .device-info-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .label {
+      color: #a5b4fc;
+      font-weight: 600;
+    }
+
+    .value {
+      color: #22c55e;
+      font-weight: 600;
     }
 
     .chart-container {
+      background: rgba(30, 41, 59, 0.6);
+      border: 1px solid rgba(34, 197, 194, 0.2);
+      border-radius: 1rem;
+      padding: 2rem;
+      margin-bottom: 3rem;
+      backdrop-filter: blur(10px);
+    }
+
+    .chart-container h2 {
+      color: #22c55e;
+      margin-bottom: 1.5rem;
+      font-size: 1.3rem;
+    }
+
+    .chart-wrapper {
       position: relative;
-      height: 300px;
-      margin-bottom: 1rem;
+      height: 400px;
     }
 
-    .device-actions {
-      display: flex;
-      gap: 0.5rem;
-      margin-top: 1rem;
+    .alerts-container {
+      background: rgba(30, 41, 59, 0.6);
+      border: 1px solid rgba(34, 197, 194, 0.2);
+      border-radius: 1rem;
+      padding: 2rem;
+      backdrop-filter: blur(10px);
     }
 
-    .btn-small {
-      flex: 1;
-      padding: 0.6rem;
-      background: rgba(0, 212, 255, 0.1);
-      border: 1px solid rgba(0, 212, 255, 0.3);
-      color: var(--primary);
-      border-radius: 6px;
-      cursor: pointer;
-      transition: all 0.3s;
-      font-size: 0.85rem;
-    }
-
-    .btn-small:hover {
-      background: rgba(0, 212, 255, 0.2);
-      border-color: var(--primary);
-    }
-
-    .alerts-section {
-      background: var(--bg-card);
-      border: 1px solid rgba(0, 212, 255, 0.2);
-      padding: 1.5rem;
-      border-radius: 12px;
-      margin-top: 2rem;
-    }
-
-    .alerts-section h2 {
-      color: var(--primary);
-      margin-bottom: 1rem;
+    .alerts-container h2 {
+      color: #22c55e;
+      margin-bottom: 1.5rem;
+      font-size: 1.3rem;
     }
 
     .alert-item {
+      background: rgba(15, 23, 42, 0.5);
+      border-left: 4px solid;
+      border-radius: 0.5rem;
       padding: 1rem;
-      background: rgba(0, 0, 0, 0.3);
-      border-left: 3px solid var(--primary);
-      border-radius: 6px;
-      margin-bottom: 0.75rem;
+      margin-bottom: 1rem;
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
 
-    .alert-item.high {
-      border-left-color: var(--warning);
+    .alert-item.warning {
+      border-color: #fb923c;
+      background: rgba(251, 146, 60, 0.1);
     }
 
     .alert-item.critical {
-      border-left-color: var(--danger);
+      border-color: #ef4444;
+      background: rgba(239, 68, 68, 0.1);
     }
 
-    .no-data {
+    .alert-message {
+      flex: 1;
+    }
+
+    .alert-time {
+      color: #a5b4fc;
+      font-size: 0.85rem;
+    }
+
+    .no-alerts {
+      text-align: center;
+      color: #a5b4fc;
+      padding: 2rem;
+    }
+
+    .loading {
       text-align: center;
       padding: 2rem;
-      color: var(--text-muted);
+      color: #a5b4fc;
     }
 
     @media (max-width: 1024px) {
@@ -304,273 +332,121 @@
         margin-left: 200px;
       }
 
-      .devices-grid {
+      .grid-container {
         grid-template-columns: 1fr;
       }
     }
 
     @media (max-width: 768px) {
       .sidebar {
-        position: fixed;
-        left: -250px;
-        z-index: 1000;
-        height: 100vh;
-        transition: left 0.3s;
-      }
-
-      .sidebar.active {
-        left: 0;
+        position: absolute;
+        width: 200px;
+        height: auto;
+        z-index: 10;
       }
 
       .main-content {
         margin-left: 0;
+        padding: 1rem;
       }
 
-      .header {
-        flex-direction: column;
+      .header h1 {
+        font-size: 1.5rem;
       }
 
-      .toggle-sidebar {
-        display: block;
+      .temperature-display {
+        font-size: 2rem;
       }
-    }
 
-    .toggle-sidebar {
-      display: none;
-      background: none;
-      border: none;
-      color: var(--primary);
-      font-size: 1.5rem;
-      cursor: pointer;
+      .grid-container {
+        gap: 1rem;
+      }
+
+      .device-card {
+        padding: 1.5rem;
+      }
     }
   </style>
 </head>
 <body>
-  <!-- SIDEBAR -->
-  <aside class="sidebar">
-    <div class="logo">⚡ TempMonitor</div>
-    <ul class="sidebar-nav">
-      <li><a href="#dashboard" class="active">📊 Dashboard</a></li>
-      <li><a href="#devices">🔧 Dispositivos</a></li>
-      <li><a href="#alerts">🚨 Alertas</a></li>
-      <li><a href="#settings">⚙️ Configurações</a></li>
-    </ul>
-    <button class="logout-btn" onclick="logout()">Sair</button>
-  </aside>
+  <div class="dashboard-container">
+    <aside class="sidebar">
+      <div class="logo">🌡️ TempControl</div>
+      <ul class="nav-menu">
+        <li><a href="dashboard.html" class="active">Dashboard</a></li>
+        <li><a href="#alerts">Alertas</a></li>
+        <li><a href="#devices">Dispositivos</a></li>
+      </ul>
+      <button class="logout-btn" id="logoutBtn">Logout</button>
+    </aside>
 
-  <!-- MAIN CONTENT -->
-  <div class="main-content">
-    <div class="header">
-      <button class="toggle-sidebar" onclick="toggleSidebar()">☰</button>
-      <h1>Dashboard</h1>
-      <div class="header-info">
-        <div class="user-info">
-          <p>Bem-vindo</p>
-          <p class="user-email" id="userEmail">Carregando...</p>
+    <main class="main-content">
+      <div class="header">
+        <h1>Dashboard</h1>
+        <div class="mqtt-status disconnected" id="mqttStatus">
+          <span class="status-dot"></span>
+          <span id="mqttStatusText">Desconectado</span>
         </div>
       </div>
-    </div>
 
-    <!-- DISPOSITIVOS -->
-    <div class="devices-grid" id="devicesContainer">
-      <div class="no-data">Carregando dispositivos...</div>
-    </div>
-
-    <!-- ALERTAS -->
-    <div class="alerts-section">
-      <h2>Alertas Recentes</h2>
-      <div id="alertsContainer">
-        <div class="no-data">Nenhum alerta no momento</div>
+      <div class="grid-container" id="devicesGrid">
+        <div class="loading">Carregando dispositivos...</div>
       </div>
-    </div>
-  </div>
 
-  <!-- MODAL PARA SIMULAR DADOS -->
-  <div id="simulationModal" style="display: none;">
-    <p>Simulando dados do Wokwi em tempo real...</p>
+      <div class="chart-container" id="chartContainer" style="display: none;">
+        <h2>Histórico de Temperatura</h2>
+        <div class="chart-wrapper">
+          <canvas id="temperatureChart"></canvas>
+        </div>
+      </div>
+
+      <div class="alerts-container">
+        <h2 id="alerts">Alertas Recentes</h2>
+        <div id="alertsList">
+          <div class="loading">Carregando alertas...</div>
+        </div>
+      </div>
+    </main>
   </div>
 
   <script>
-    const SUPABASE_URL = 'YOUR_SUPABASE_URL';
-    const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
-
+    // ALTERE PARA SUAS CREDENCIAIS SUPABASE
+    const SUPABASE_URL = 'https://seu-projeto.supabase.co';
+    const SUPABASE_ANON_KEY = 'sua-chave-anonima';
+    
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+    const MQTT_BROKER = 'wss://broker.emqx.io:8084/mqtt';
+    const MQTT_TOPIC = 'iot/otavio';
+
     let currentUser = null;
-    let charts = {};
     let mqttClient = null;
     let mqttConnected = false;
-    
-    // Configurações MQTT
-    const MQTT_BROKER = 'wss://broker.emqx.io:8084/mqtt';
-    const MQTT_TOPICS = {
-      temperature: 'iot/otavio',
-      humidity: 'iot/otavio/humidity'
-    };
+    let temperatureChart = null;
+    let currentDevice = null;
 
-    // Verificar autenticação
+    window.addEventListener('load', async () => {
+      console.log('[v0] Inicializando dashboard...');
+      await checkAuth();
+      connectMQTT();
+      loadDevices();
+      loadAlerts();
+    });
+
     async function checkAuth() {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
       
-      if (!user) {
+      if (!session) {
+        console.log('[v0] Usuário não autenticado');
         window.location.href = 'login.html';
         return;
       }
 
-      currentUser = user;
-      document.getElementById('userEmail').textContent = user.email;
-      loadDevices();
-      loadAlerts();
-      startSimulation();
+      currentUser = session.user;
+      console.log('[v0] Usuário autenticado:', currentUser.email);
     }
 
-    // Carregar dispositivos
-    async function loadDevices() {
-      const { data: devices, error } = await supabase
-        .from('devices')
-        .select('*')
-        .eq('user_id', currentUser.id);
-
-      if (error) {
-        console.error('Erro ao carregar dispositivos:', error);
-        return;
-      }
-
-      const container = document.getElementById('devicesContainer');
-
-      if (devices.length === 0) {
-        container.innerHTML = '<div class="no-data">Nenhum dispositivo cadastrado. Adicione um novo!</div>';
-        return;
-      }
-
-      container.innerHTML = '';
-
-      for (const device of devices) {
-        const { data: readings } = await supabase
-          .from('temperature_readings')
-          .select('temperature, status, timestamp')
-          .eq('device_id', device.id)
-          .order('timestamp', { ascending: false })
-          .limit(20);
-
-        const currentReading = readings?.[0];
-
-        const card = document.createElement('div');
-        card.className = 'device-card';
-        card.innerHTML = `
-          <h3>${device.name}</h3>
-          <p class="device-info">${device.location || 'Localização não definida'}</p>
-          <div class="temperature-display">
-            <div>
-              <div class="temp-value">${currentReading?.temperature.toFixed(1) || '--'}°C</div>
-              <p style="font-size: 0.8rem; color: var(--text-muted);">Temperatura Atual</p>
-            </div>
-            <span class="temp-status status-${currentReading?.status || 'normal'}">
-              ${(currentReading?.status || 'normal').toUpperCase()}
-            </span>
-          </div>
-          <div class="chart-container">
-            <canvas id="chart-${device.id}"></canvas>
-          </div>
-          <div class="device-actions">
-            <button class="btn-small" onclick="editDevice('${device.id}')">Editar</button>
-            <button class="btn-small" onclick="deleteDevice('${device.id}')">Remover</button>
-          </div>
-        `;
-
-        container.appendChild(card);
-
-        // Criar gráfico
-        if (readings && readings.length > 0) {
-          createChart(device.id, readings);
-        }
-      }
-    }
-
-    // Criar gráfico de temperatura
-    function createChart(deviceId, readings) {
-      const ctx = document.getElementById(`chart-${deviceId}`).getContext('2d');
-      const labels = readings.reverse().map(r => new Date(r.timestamp).toLocaleTimeString());
-      const data = readings.map(r => r.temperature);
-
-      charts[deviceId] = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels,
-          datasets: [{
-            label: 'Temperatura (°C)',
-            data,
-            borderColor: '#00d4ff',
-            backgroundColor: 'rgba(0, 212, 255, 0.1)',
-            borderWidth: 2,
-            fill: true,
-            tension: 0.4,
-            pointRadius: 3,
-            pointBackgroundColor: '#00d4ff'
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false }
-          },
-          scales: {
-            y: {
-              beginAtZero: false,
-              ticks: { color: '#888888' },
-              grid: { color: 'rgba(0, 212, 255, 0.1)' }
-            },
-            x: {
-              ticks: { color: '#888888' },
-              grid: { color: 'rgba(0, 212, 255, 0.1)' }
-            }
-          }
-        }
-      });
-    }
-
-    // Carregar alertas
-    async function loadAlerts() {
-      const { data: alerts, error } = await supabase
-        .from('alerts')
-        .select('*')
-        .eq('user_id', currentUser.id)
-        .order('created_at', { ascending: false })
-        .limit(5);
-
-      if (error) {
-        console.error('Erro ao carregar alertas:', error);
-        return;
-      }
-
-      const container = document.getElementById('alertsContainer');
-
-      if (alerts.length === 0) {
-        container.innerHTML = '<div class="no-data">Nenhum alerta no momento</div>';
-        return;
-      }
-
-      container.innerHTML = '';
-
-      alerts.forEach(alert => {
-        const item = document.createElement('div');
-        item.className = `alert-item ${alert.alert_type}`;
-        item.innerHTML = `
-          <div>
-            <strong>${alert.message}</strong>
-            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">
-              ${new Date(alert.created_at).toLocaleString()}
-            </p>
-          </div>
-          ${!alert.is_read ? '<span style="background: var(--primary); width: 8px; height: 8px; border-radius: 50%;"></span>' : ''}
-        `;
-        container.appendChild(item);
-      });
-    }
-
-    // Conectar ao broker MQTT
-    async function connectMQTT() {
+    function connectMQTT() {
       console.log('[v0] Conectando ao broker MQTT...');
       
       try {
@@ -583,120 +459,279 @@
 
         mqttClient.on('connect', () => {
           console.log('[v0] Conectado ao broker MQTT');
-          mqttConnected = true;
-          
-          // Inscrever no tópico de temperatura
-          mqttClient.subscribe(MQTT_TOPICS.temperature, (err) => {
-            if (err) {
-              console.error('[v0] Erro ao inscrever:', err);
-            } else {
-              console.log('[v0] Inscrito no tópico: ' + MQTT_TOPICS.temperature);
+          updateMQTTStatus(true);
+          mqttClient.subscribe(MQTT_TOPIC, (err) => {
+            if (!err) {
+              console.log('[v0] Inscrito no tópico:', MQTT_TOPIC);
             }
           });
         });
 
-        mqttClient.on('message', async (topic, message) => {
-          console.log('[v0] Mensagem recebida do tópico ' + topic + ': ' + message.toString());
-          
-          if (topic === MQTT_TOPICS.temperature) {
-            const temperatura = parseFloat(message.toString());
-            
-            if (!isNaN(temperatura)) {
-              // Obter primeiro dispositivo do usuário
-              const { data: devices } = await supabase
-                .from('devices')
-                .select('id, min_temp, max_temp')
-                .eq('user_id', currentUser.id)
-                .limit(1);
-
-              if (devices && devices.length > 0) {
-                const device = devices[0];
-                const status = temperatura >= device.max_temp ? 'critical' : 
-                              temperatura >= device.max_temp * 0.75 ? 'warning' : 'normal';
-
-                // Salvar no Supabase
-                const { error } = await supabase.from('temperature_readings').insert({
-                  device_id: device.id,
-                  temperature: temperatura,
-                  humidity: 50,
-                  status
-                });
-
-                if (error) {
-                  console.error('[v0] Erro ao salvar temperatura:', error);
-                } else {
-                  console.log('[v0] Temperatura salva: ' + temperatura + '°C com status: ' + status);
-                }
-
-                // Criar alerta se necessário
-                if (status !== 'normal') {
-                  const alertMessage = status === 'critical' 
-                    ? `Alerta crítico! Temperatura em ${temperatura}°C` 
-                    : `Aviso! Temperatura em ${temperatura}°C`;
-
-                  const { error: alertError } = await supabase.from('alerts').insert({
-                    device_id: device.id,
-                    user_id: currentUser.id,
-                    message: alertMessage,
-                    alert_type: status,
-                    is_read: false
-                  });
-
-                  if (alertError) {
-                    console.error('[v0] Erro ao criar alerta:', alertError);
-                  }
-                }
-
-                // Atualizar UI
-                loadDevices();
-                loadAlerts();
-              }
-            }
-          }
+        mqttClient.on('message', (topic, message) => {
+          handleMQTTMessage(topic, message);
         });
 
         mqttClient.on('error', (err) => {
           console.error('[v0] Erro MQTT:', err);
-          mqttConnected = false;
+          updateMQTTStatus(false);
         });
 
         mqttClient.on('disconnect', () => {
-          console.log('[v0] Desconectado do broker MQTT');
-          mqttConnected = false;
+          console.log('[v0] Desconectado do MQTT');
+          updateMQTTStatus(false);
         });
 
       } catch (error) {
-        console.error('[v0] Erro ao conectar ao MQTT:', error);
+        console.error('[v0] Erro ao conectar MQTT:', error);
+        updateMQTTStatus(false);
       }
     }
 
-    // Iniciar conexão MQTT
-    function startSimulation() {
-      connectMQTT();
-    }
-
-    // Funções auxiliares
-    function editDevice(deviceId) {
-      alert('Editar dispositivo: ' + deviceId);
-    }
-
-    async function deleteDevice(deviceId) {
-      if (confirm('Tem certeza que deseja remover este dispositivo?')) {
-        await supabase.from('devices').delete().eq('id', deviceId);
-        loadDevices();
+    function updateMQTTStatus(connected) {
+      mqttConnected = connected;
+      const statusEl = document.getElementById('mqttStatus');
+      const statusText = document.getElementById('mqttStatusText');
+      
+      if (connected) {
+        statusEl.className = 'mqtt-status connected';
+        statusText.textContent = 'Conectado';
+      } else {
+        statusEl.className = 'mqtt-status disconnected';
+        statusText.textContent = 'Desconectado';
       }
     }
 
-    function toggleSidebar() {
-      document.querySelector('.sidebar').classList.toggle('active');
+    async function handleMQTTMessage(topic, message) {
+      if (topic !== MQTT_TOPIC) return;
+
+      const temperatura = parseFloat(message.toString());
+      console.log('[v0] Temperatura recebida:', temperatura, '°C');
+
+      if (isNaN(temperatura)) return;
+
+      if (!currentDevice) {
+        await loadDevices();
+        if (!currentDevice) return;
+      }
+
+      const status = temperatura >= currentDevice.max_temp ? 'critical' : 
+                    temperatura >= currentDevice.max_temp * 0.75 ? 'warning' : 'normal';
+
+      const { error } = await supabase.from('temperature_readings').insert({
+        device_id: currentDevice.id,
+        temperature: temperatura,
+        humidity: 50,
+        status
+      });
+
+      if (error) {
+        console.error('[v0] Erro ao salvar:', error);
+      } else {
+        console.log('[v0] Temperatura salva com sucesso');
+      }
+
+      if (status !== 'normal') {
+        const alertMessage = status === 'critical' 
+          ? `Alerta crítico! Temperatura em ${temperatura}°C` 
+          : `Aviso! Temperatura em ${temperatura}°C`;
+
+        await supabase.from('alerts').insert({
+          device_id: currentDevice.id,
+          user_id: currentUser.id,
+          message: alertMessage,
+          alert_type: status,
+          is_read: false
+        });
+      }
+
+      loadDevices();
+      loadAlerts();
+      loadChart();
     }
 
-    async function logout() {
+    async function loadDevices() {
+      try {
+        const { data: devices, error } = await supabase
+          .from('devices')
+          .select('*')
+          .eq('user_id', currentUser.id);
+
+        if (error) throw error;
+
+        console.log('[v0] Dispositivos carregados:', devices?.length);
+
+        if (!devices || devices.length === 0) {
+          document.getElementById('devicesGrid').innerHTML = 
+            '<div class="loading">Nenhum dispositivo cadastrado</div>';
+          return;
+        }
+
+        currentDevice = devices[0];
+        displayDevices(devices);
+        loadChart();
+
+      } catch (error) {
+        console.error('[v0] Erro ao carregar dispositivos:', error);
+      }
+    }
+
+    async function displayDevices(devices) {
+      const grid = document.getElementById('devicesGrid');
+      grid.innerHTML = '';
+
+      for (const device of devices) {
+        const { data: lastReading } = await supabase
+          .from('temperature_readings')
+          .select('*')
+          .eq('device_id', device.id)
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        const temp = lastReading?.[0]?.temperature || '--';
+        const status = lastReading?.[0]?.status || 'normal';
+        const humidity = lastReading?.[0]?.humidity || '--';
+
+        const card = document.createElement('div');
+        card.className = 'device-card';
+        card.innerHTML = `
+          <div class="device-header">
+            <div class="device-name">${device.device_name}</div>
+            <div class="status-badge ${status}">
+              ${status === 'critical' ? '🔴 Crítico' : 
+                status === 'warning' ? '🟡 Aviso' : 
+                '🟢 Normal'}
+            </div>
+          </div>
+          <div class="temperature-display">${temp}°C</div>
+          <div class="device-info">
+            <div class="device-info-row">
+              <span class="label">Umidade:</span>
+              <span class="value">${humidity}%</span>
+            </div>
+            <div class="device-info-row">
+              <span class="label">Min/Max:</span>
+              <span class="value">${device.min_temp}°C / ${device.max_temp}°C</span>
+            </div>
+            <div class="device-info-row">
+              <span class="label">Local:</span>
+              <span class="value">${device.location || 'Não especificado'}</span>
+            </div>
+          </div>
+        `;
+        grid.appendChild(card);
+      }
+    }
+
+    async function loadChart() {
+      if (!currentDevice) return;
+
+      const { data: readings } = await supabase
+        .from('temperature_readings')
+        .select('*')
+        .eq('device_id', currentDevice.id)
+        .order('created_at', { ascending: true })
+        .limit(24);
+
+      if (!readings || readings.length === 0) {
+        document.getElementById('chartContainer').style.display = 'none';
+        return;
+      }
+
+      document.getElementById('chartContainer').style.display = 'block';
+
+      const labels = readings.map(r => {
+        const date = new Date(r.created_at);
+        return date.toLocaleTimeString('pt-BR');
+      });
+
+      const data = readings.map(r => r.temperature);
+
+      if (temperatureChart) {
+        temperatureChart.destroy();
+      }
+
+      const ctx = document.getElementById('temperatureChart').getContext('2d');
+      temperatureChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Temperatura (°C)',
+            data,
+            borderColor: '#22c55e',
+            backgroundColor: 'rgba(34, 197, 94, 0.1)',
+            borderWidth: 2,
+            fill: true,
+            tension: 0.4,
+            pointBackgroundColor: '#22c55e',
+            pointBorderColor: '#06b6d4',
+            pointRadius: 4,
+            pointHoverRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              labels: { color: '#a5b4fc' }
+            }
+          },
+          scales: {
+            y: {
+              ticks: { color: '#a5b4fc' },
+              grid: { color: 'rgba(34, 197, 194, 0.1)' }
+            },
+            x: {
+              ticks: { color: '#a5b4fc' },
+              grid: { color: 'rgba(34, 197, 194, 0.1)' }
+            }
+          }
+        }
+      });
+    }
+
+    async function loadAlerts() {
+      try {
+        const { data: alerts } = await supabase
+          .from('alerts')
+          .select('*')
+          .eq('user_id', currentUser.id)
+          .order('created_at', { ascending: false })
+          .limit(10);
+
+        const alertsList = document.getElementById('alertsList');
+
+        if (!alerts || alerts.length === 0) {
+          alertsList.innerHTML = '<div class="no-alerts">Nenhum alerta no momento</div>';
+          return;
+        }
+
+        alertsList.innerHTML = '';
+        alerts.forEach(alert => {
+          const date = new Date(alert.created_at).toLocaleString('pt-BR');
+          const item = document.createElement('div');
+          item.className = `alert-item ${alert.alert_type}`;
+          item.innerHTML = `
+            <div class="alert-message">
+              <div>${alert.message}</div>
+              <div class="alert-time">${date}</div>
+            </div>
+          `;
+          alertsList.appendChild(item);
+        });
+
+      } catch (error) {
+        console.error('[v0] Erro ao carregar alertas:', error);
+      }
+    }
+
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+      console.log('[v0] Fazendo logout...');
       await supabase.auth.signOut();
-      window.location.href = 'login.html';
-    }
-
-    checkAuth();
+      if (mqttClient) mqttClient.end();
+      window.location.href = 'index.html';
+    });
   </script>
 </body>
 </html>
