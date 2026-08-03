@@ -1,4 +1,4 @@
-## 🌡️ TempControl - Sistema de Monitoramento IoT
+## 🌡️ Thermite - Sistema de Monitoramento IoT
 
 Sistema completo de monitoramento de temperatura em tempo real com integração MQTT, autenticação Supabase e dashboard interativo.
 
