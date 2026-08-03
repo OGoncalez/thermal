@@ -6,6 +6,7 @@
   <title>Dashboard - TempMonitor</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mqtt@5.8.0/dist/mqtt.min.js"></script>
   <style>
     * {
       margin: 0;
@@ -397,6 +398,15 @@
 
     let currentUser = null;
     let charts = {};
+    let mqttClient = null;
+    let mqttConnected = false;
+    
+    // Configurações MQTT
+    const MQTT_BROKER = 'wss://broker.emqx.io:8084/mqtt';
+    const MQTT_TOPICS = {
+      temperature: 'iot/otavio',
+      humidity: 'iot/otavio/humidity'
+    };
 
     // Verificar autenticação
     async function checkAuth() {
@@ -559,33 +569,110 @@
       });
     }
 
-    // Simular dados do Wokwi
-    function startSimulation() {
-      console.log('[v0] Iniciando simulação de dados do Wokwi...');
-      setInterval(async () => {
-        const { data: devices } = await supabase
-          .from('devices')
-          .select('id, min_temp, max_temp')
-          .eq('user_id', currentUser.id);
+    // Conectar ao broker MQTT
+    async function connectMQTT() {
+      console.log('[v0] Conectando ao broker MQTT...');
+      
+      try {
+        mqttClient = mqtt.connect(MQTT_BROKER, {
+          clientId: 'web-client-' + Math.random().toString(16).substr(2, 8),
+          clean: true,
+          reconnectPeriod: 1000,
+          connectTimeout: 10000
+        });
 
-        if (devices) {
-          for (const device of devices) {
-            const simulatedTemp = device.min_temp + Math.random() * (device.max_temp - device.min_temp);
-            const status = simulatedTemp > device.max_temp * 0.9 ? 'critical' : 
-                          simulatedTemp > device.max_temp * 0.75 ? 'warning' : 'normal';
+        mqttClient.on('connect', () => {
+          console.log('[v0] Conectado ao broker MQTT');
+          mqttConnected = true;
+          
+          // Inscrever no tópico de temperatura
+          mqttClient.subscribe(MQTT_TOPICS.temperature, (err) => {
+            if (err) {
+              console.error('[v0] Erro ao inscrever:', err);
+            } else {
+              console.log('[v0] Inscrito no tópico: ' + MQTT_TOPICS.temperature);
+            }
+          });
+        });
 
-            await supabase.from('temperature_readings').insert({
-              device_id: device.id,
-              temperature: parseFloat(simulatedTemp.toFixed(2)),
-              humidity: 40 + Math.random() * 40,
-              status
-            });
+        mqttClient.on('message', async (topic, message) => {
+          console.log('[v0] Mensagem recebida do tópico ' + topic + ': ' + message.toString());
+          
+          if (topic === MQTT_TOPICS.temperature) {
+            const temperatura = parseFloat(message.toString());
+            
+            if (!isNaN(temperatura)) {
+              // Obter primeiro dispositivo do usuário
+              const { data: devices } = await supabase
+                .from('devices')
+                .select('id, min_temp, max_temp')
+                .eq('user_id', currentUser.id)
+                .limit(1);
+
+              if (devices && devices.length > 0) {
+                const device = devices[0];
+                const status = temperatura >= device.max_temp ? 'critical' : 
+                              temperatura >= device.max_temp * 0.75 ? 'warning' : 'normal';
+
+                // Salvar no Supabase
+                const { error } = await supabase.from('temperature_readings').insert({
+                  device_id: device.id,
+                  temperature: temperatura,
+                  humidity: 50,
+                  status
+                });
+
+                if (error) {
+                  console.error('[v0] Erro ao salvar temperatura:', error);
+                } else {
+                  console.log('[v0] Temperatura salva: ' + temperatura + '°C com status: ' + status);
+                }
+
+                // Criar alerta se necessário
+                if (status !== 'normal') {
+                  const alertMessage = status === 'critical' 
+                    ? `Alerta crítico! Temperatura em ${temperatura}°C` 
+                    : `Aviso! Temperatura em ${temperatura}°C`;
+
+                  const { error: alertError } = await supabase.from('alerts').insert({
+                    device_id: device.id,
+                    user_id: currentUser.id,
+                    message: alertMessage,
+                    alert_type: status,
+                    is_read: false
+                  });
+
+                  if (alertError) {
+                    console.error('[v0] Erro ao criar alerta:', alertError);
+                  }
+                }
+
+                // Atualizar UI
+                loadDevices();
+                loadAlerts();
+              }
+            }
           }
-        }
+        });
 
-        loadDevices();
-        loadAlerts();
-      }, 5000); // Atualizar a cada 5 segundos
+        mqttClient.on('error', (err) => {
+          console.error('[v0] Erro MQTT:', err);
+          mqttConnected = false;
+        });
+
+        mqttClient.on('disconnect', () => {
+          console.log('[v0] Desconectado do broker MQTT');
+          mqttConnected = false;
+        });
+
+      } catch (error) {
+        console.error('[v0] Erro ao conectar ao MQTT:', error);
+      }
+    }
+
+    // Iniciar conexão MQTT
+    function startSimulation() {
+      connectMQTT();
     }
 
     // Funções auxiliares
