@@ -367,15 +367,20 @@
       }
     }
   </style>
+  <!-- Libraries: Supabase, MQTT, Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
   <div class="dashboard-container">
     <aside class="sidebar">
-      <div class="logo">🌡️ Thermite</div>
+      <div class="logo">Thermite</div>
       <ul class="nav-menu">
         <li><a href="dashboard.html" class="active">Dashboard</a></li>
+        <li><a href="controle.html">Controle</a></li>
         <li><a href="#alerts">Alertas</a></li>
-        <li><a href="#devices">Dispositivos</a></li>
+        <li><a href="index.html">Início</a></li>
       </ul>
       <button class="logout-btn" id="logoutBtn">Logout</button>
     </aside>
@@ -406,15 +411,18 @@
           <div class="loading">Carregando alertas...</div>
         </div>
       </div>
+      <footer style="margin-top:2rem;color:#a5b4fc;text-align:center;font-size:0.9rem;">
+        <div>Thermite • membros: Otávio e equipe • © <span id="year"></span></div>
+      </footer>
     </main>
   </div>
 
   <script>
-    // ALTERE PARA SUAS CREDENCIAIS SUPABASE
+    
     const SUPABASE_URL = 'https://lbtnzygqdotxxkgsyeng.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxidG56eWdxZG90eHhrZ3N5ZW5nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3NTg4NjQsImV4cCI6MjEwMTMzNDg2NH0.ErngBpmCGdEUiMq081lF9n8UtWm6e-M8ESmsAh4PH_Q';
-    
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     const MQTT_BROKER = 'wss://broker.emqx.io:8084/mqtt';
     const MQTT_TOPIC = 'iot/otavio';
@@ -424,30 +432,33 @@
     let mqttConnected = false;
     let temperatureChart = null;
     let currentDevice = null;
+    let temperatureHistory = [];
+    let alertsHistory = [];
 
     window.addEventListener('load', async () => {
-      console.log('[v0] Inicializando dashboard...');
+      console.log('Inicializando dashboard...');
       await checkAuth();
+      loadHistoryFromStorage();
       connectMQTT();
       loadDevices();
       loadAlerts();
     });
 
     async function checkAuth() {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session } } = await supabaseClient.auth.getSession();
       
       if (!session) {
-        console.log('[v0] Usuário não autenticado');
+        console.log('Usuário não autenticado');
         window.location.href = 'login.html';
         return;
       }
 
       currentUser = session.user;
-      console.log('[v0] Usuário autenticado:', currentUser.email);
+      console.log('Usuário autenticado:', currentUser.email);
     }
 
     function connectMQTT() {
-      console.log('[v0] Conectando ao broker MQTT...');
+      console.log('Conectando ao broker MQTT...');
       
       try {
         mqttClient = mqtt.connect(MQTT_BROKER, {
@@ -458,11 +469,11 @@
         });
 
         mqttClient.on('connect', () => {
-          console.log('[v0] Conectado ao broker MQTT');
+          console.log('Conectado ao broker MQTT');
           updateMQTTStatus(true);
           mqttClient.subscribe(MQTT_TOPIC, (err) => {
             if (!err) {
-              console.log('[v0] Inscrito no tópico:', MQTT_TOPIC);
+              console.log('Inscrito no tópico:', MQTT_TOPIC);
             }
           });
         });
@@ -472,17 +483,17 @@
         });
 
         mqttClient.on('error', (err) => {
-          console.error('[v0] Erro MQTT:', err);
+          console.error('Erro MQTT:', err);
           updateMQTTStatus(false);
         });
 
         mqttClient.on('disconnect', () => {
-          console.log('[v0] Desconectado do MQTT');
+          console.log('Desconectado do MQTT');
           updateMQTTStatus(false);
         });
 
       } catch (error) {
-        console.error('[v0] Erro ao conectar MQTT:', error);
+        console.error('Erro ao conectar MQTT:', error);
         updateMQTTStatus(false);
       }
     }
@@ -504,74 +515,119 @@
     async function handleMQTTMessage(topic, message) {
       if (topic !== MQTT_TOPIC) return;
 
-      const temperatura = parseFloat(message.toString());
-      console.log('[v0] Temperatura recebida:', temperatura, '°C');
+      const payloadText = message.toString();
+      let payload = null;
+      let deviceId = null;
+
+      try {
+        payload = JSON.parse(payloadText);
+      } catch (error) {
+        payload = null;
+      }
+
+      const temperatura = parseFloat(payload?.temperature ?? payloadText);
+      if (payload?.device_id) {
+        deviceId = payload.device_id;
+      }
+
+      console.log('Temperatura recebida:', temperatura, '°C', 'deviceId:', deviceId);
 
       if (isNaN(temperatura)) return;
 
       if (!currentDevice) {
-        await loadDevices();
-        if (!currentDevice) return;
+        currentDevice = {
+          id: deviceId || 'esp32-default',
+          device_name: 'ESP32 MQTT',
+          min_temp: 0,
+          max_temp: 50,
+          location: 'MQTT',
+          status: 'normal',
+          lastReading: null
+        };
       }
 
-      const status = temperatura >= currentDevice.max_temp ? 'critical' : 
-                    temperatura >= currentDevice.max_temp * 0.75 ? 'warning' : 'normal';
+      if (deviceId && currentDevice.id === 'esp32-default') {
+        currentDevice.id = deviceId;
+      }
 
-      const { error } = await supabase.from('temperature_readings').insert({
-        device_id: currentDevice.id,
+      // Thresholds: Normal <25, Atenção 25-40, Crítico >40
+      let status = 'normal';
+      if (temperatura > 40) status = 'critical';
+      else if (temperatura >= 25) status = 'warning';
+
+      currentDevice.lastReading = {
         temperature: temperatura,
-        humidity: 50,
-        status
-      });
+        humidity: payload?.humidity ?? '--',
+        status,
+        created_at: new Date().toISOString()
+      };
+      currentDevice.status = status;
 
-      if (error) {
-        console.error('[v0] Erro ao salvar:', error);
-      } else {
-        console.log('[v0] Temperatura salva com sucesso');
+      temperatureHistory.push({
+        temperature: temperatura,
+        created_at: new Date().toISOString()
+      });
+      if (temperatureHistory.length > 24) {
+        temperatureHistory.shift();
       }
 
       if (status !== 'normal') {
-        const alertMessage = status === 'critical' 
-          ? `Alerta crítico! Temperatura em ${temperatura}°C` 
-          : `Aviso! Temperatura em ${temperatura}°C`;
-
-        await supabase.from('alerts').insert({
-          device_id: currentDevice.id,
-          user_id: currentUser.id,
-          message: alertMessage,
+        alertsHistory.unshift({
+          message: status === 'critical'
+            ? `Alerta crítico! Temperatura em ${temperatura}°C`
+            : `Atenção! Temperatura em ${temperatura}°C`,
           alert_type: status,
-          is_read: false
+          created_at: new Date().toISOString()
         });
+
+        if (alertsHistory.length > 10) {
+          alertsHistory.pop();
+        }
       }
 
-      loadDevices();
-      loadAlerts();
+      // Grava leitura no usuário se der
+      if (currentUser?.id) {
+        try {
+          const { error: upError } = await supabaseClient
+            .from('users')
+            .update({ last_temp: temperatura, last_seen: new Date().toISOString() })
+            .eq('id', currentUser.id);
+
+          if (upError) console.warn('Não foi possível persistir leitura:', upError.message || upError);
+        } catch (e) {
+          console.warn('Erro ao persistir leitura:', e);
+        }
+      }
+
+      // persist histories to localStorage so they survive page reloads
+      saveHistoryToStorage();
+
+      displayDevices([currentDevice]);
       loadChart();
+      loadAlerts();
     }
 
     async function loadDevices() {
       try {
-        const { data: devices, error } = await supabase
-          .from('devices')
-          .select('*')
-          .eq('user_id', currentUser.id);
-
-        if (error) throw error;
-
-        console.log('[v0] Dispositivos carregados:', devices?.length);
-
-        if (!devices || devices.length === 0) {
-          document.getElementById('devicesGrid').innerHTML = 
-            '<div class="loading">Nenhum dispositivo cadastrado</div>';
-          return;
+        if (!currentDevice) {
+          currentDevice = {
+            id: 'esp32-default',
+            device_name: 'ESP32 MQTT',
+            min_temp: 0,
+            max_temp: 50,
+            location: 'MQTT',
+            status: 'normal',
+            lastReading: null
+          };
         }
 
-        currentDevice = devices[0];
-        displayDevices(devices);
+        displayDevices([currentDevice]);
         loadChart();
 
       } catch (error) {
-        console.error('[v0] Erro ao carregar dispositivos:', error);
+        console.error('Erro ao carregar dispositivos:', error);
+        document.getElementById('devicesGrid').innerHTML = 
+          '<div class="loading">Erro ao carregar dispositivo. Verifique o console.</div>';
       }
     }
 
@@ -580,16 +636,9 @@
       grid.innerHTML = '';
 
       for (const device of devices) {
-        const { data: lastReading } = await supabase
-          .from('temperature_readings')
-          .select('*')
-          .eq('device_id', device.id)
-          .order('created_at', { ascending: false })
-          .limit(1);
-
-        const temp = lastReading?.[0]?.temperature || '--';
-        const status = lastReading?.[0]?.status || 'normal';
-        const humidity = lastReading?.[0]?.humidity || '--';
+        const temp = device.lastReading?.temperature ?? '--';
+        const status = device.lastReading?.status || 'normal';
+        const humidity = device.lastReading?.humidity ?? '--';
 
         const card = document.createElement('div');
         card.className = 'device-card';
@@ -597,17 +646,13 @@
           <div class="device-header">
             <div class="device-name">${device.device_name}</div>
             <div class="status-badge ${status}">
-              ${status === 'critical' ? '🔴 Crítico' : 
-                status === 'warning' ? '🟡 Aviso' : 
-                '🟢 Normal'}
+              ${status === 'critical' ? 'Crítico' : 
+                status === 'warning' ? 'Atenção' : 
+                'Normal'}
             </div>
           </div>
           <div class="temperature-display">${temp}°C</div>
           <div class="device-info">
-            <div class="device-info-row">
-              <span class="label">Umidade:</span>
-              <span class="value">${humidity}%</span>
-            </div>
             <div class="device-info-row">
               <span class="label">Min/Max:</span>
               <span class="value">${device.min_temp}°C / ${device.max_temp}°C</span>
@@ -622,29 +667,20 @@
       }
     }
 
-    async function loadChart() {
-      if (!currentDevice) return;
-
-      const { data: readings } = await supabase
-        .from('temperature_readings')
-        .select('*')
-        .eq('device_id', currentDevice.id)
-        .order('created_at', { ascending: true })
-        .limit(24);
-
-      if (!readings || readings.length === 0) {
+    function loadChart() {
+      if (!currentDevice || temperatureHistory.length === 0) {
         document.getElementById('chartContainer').style.display = 'none';
         return;
       }
 
       document.getElementById('chartContainer').style.display = 'block';
 
-      const labels = readings.map(r => {
+      const labels = temperatureHistory.map(r => {
         const date = new Date(r.created_at);
         return date.toLocaleTimeString('pt-BR');
       });
 
-      const data = readings.map(r => r.temperature);
+      const data = temperatureHistory.map(r => r.temperature);
 
       if (temperatureChart) {
         temperatureChart.destroy();
@@ -691,44 +727,59 @@
       });
     }
 
-    async function loadAlerts() {
-      try {
-        const { data: alerts } = await supabase
-          .from('alerts')
-          .select('*')
-          .eq('user_id', currentUser.id)
-          .order('created_at', { ascending: false })
-          .limit(10);
+    function loadAlerts() {
+      const alertsList = document.getElementById('alertsList');
 
-        const alertsList = document.getElementById('alertsList');
-
-        if (!alerts || alerts.length === 0) {
-          alertsList.innerHTML = '<div class="no-alerts">Nenhum alerta no momento</div>';
-          return;
-        }
-
-        alertsList.innerHTML = '';
-        alerts.forEach(alert => {
-          const date = new Date(alert.created_at).toLocaleString('pt-BR');
-          const item = document.createElement('div');
-          item.className = `alert-item ${alert.alert_type}`;
-          item.innerHTML = `
-            <div class="alert-message">
-              <div>${alert.message}</div>
-              <div class="alert-time">${date}</div>
-            </div>
-          `;
-          alertsList.appendChild(item);
-        });
-
-      } catch (error) {
-        console.error('[v0] Erro ao carregar alertas:', error);
+      if (!alertsHistory || alertsHistory.length === 0) {
+        alertsList.innerHTML = '<div class="no-alerts">Nenhum alerta no momento</div>';
+        return;
       }
+
+      alertsList.innerHTML = '';
+      alertsHistory.forEach(alert => {
+        const date = new Date(alert.created_at).toLocaleString('pt-BR');
+        const item = document.createElement('div');
+        item.className = `alert-item ${alert.alert_type}`;
+        item.innerHTML = `
+          <div class="alert-message">
+            <div>${alert.message}</div>
+            <div class="alert-time">${date}</div>
+          </div>
+        `;
+        alertsList.appendChild(item);
+      });
     }
 
+    // set footer year
+    try { document.getElementById('year').textContent = new Date().getFullYear(); } catch(e){}
+
+
+        // Salva histórico no localStorage
+        function saveHistoryToStorage() {
+          try {
+            localStorage.setItem('temperatureHistory', JSON.stringify(temperatureHistory));
+            localStorage.setItem('alertsHistory', JSON.stringify(alertsHistory));
+            if (currentDevice) localStorage.setItem('currentDevice', JSON.stringify(currentDevice));
+          } catch (e) {
+            console.warn('Erro ao salvar histórico no localStorage:', e);
+          }
+        }
+
+        function loadHistoryFromStorage() {
+          try {
+            const th = localStorage.getItem('temperatureHistory');
+            const ah = localStorage.getItem('alertsHistory');
+            const cd = localStorage.getItem('currentDevice');
+            if (th) temperatureHistory = JSON.parse(th) || [];
+            if (ah) alertsHistory = JSON.parse(ah) || [];
+            if (cd && !currentDevice) currentDevice = JSON.parse(cd);
+          } catch (e) {
+            console.warn('Erro ao carregar histórico do localStorage:', e);
+          }
+        }
     document.getElementById('logoutBtn').addEventListener('click', async () => {
-      console.log('[v0] Fazendo logout...');
-      await supabase.auth.signOut();
+      console.log('Fazendo logout...');
+      await supabaseClient.auth.signOut();
       if (mqttClient) mqttClient.end();
       window.location.href = 'index.html';
     });

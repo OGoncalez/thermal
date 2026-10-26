@@ -198,7 +198,7 @@
 <body>
   <div class="container">
     <div class="signup-box">
-      <div class="logo">🌡️ Thermite</div>
+      <div class="logo">Thermite</div>
       <h1>Cadastro</h1>
       <p class="subtitle">Crie sua conta para começar</p>
 
@@ -234,7 +234,7 @@
           </div>
         </div>
 
-        <button type="submit" class="btn">Criar Conta</button>
+        <button type="submit" id="signupBtn" class="btn">Criar Conta</button>
         <div class="loading" id="loading">Carregando...</div>
       </form>
 
@@ -245,11 +245,11 @@
   </div>
 
   <script>
-    // ALTERE PARA SUAS CREDENCIAIS SUPABASE
+    
      const SUPABASE_URL = 'https://lbtnzygqdotxxkgsyeng.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxidG56eWdxZG90eHhrZ3N5ZW5nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3NTg4NjQsImV4cCI6MjEwMTMzNDg2NH0.ErngBpmCGdEUiMq081lF9n8UtWm6e-M8ESmsAh4PH_Q';
     
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     const signupForm = document.getElementById('signupForm');
     const messageBox = document.getElementById('messageBox');
@@ -286,7 +286,11 @@
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
 
-      console.log('[v0] Tentando cadastro com email:', email);
+      if (!fullName || !email) {
+        messageBox.className = 'message error';
+        messageBox.textContent = 'Preencha nome e email.';
+        return;
+      }
 
       if (password.length < 6 || !/[A-Z]/.test(password) || !/[0-9]/.test(password)) {
         messageBox.className = 'message error';
@@ -294,12 +298,14 @@
         return;
       }
 
+      const signupBtn = document.getElementById('signupBtn');
+      signupBtn.disabled = true;
       loadingDiv.style.display = 'block';
       messageBox.className = 'message';
       messageBox.textContent = '';
 
       try {
-        const { data, error } = await supabase.auth.signUp({
+        const { data, error } = await supabaseClient.auth.signUp({
           email,
           password,
           options: {
@@ -310,49 +316,58 @@
         });
 
         if (error) {
-          console.error('[v0] Erro de cadastro:', error.message);
+          console.error('Erro de cadastro:', error.message);
           throw error;
         }
+        const userId = data.user?.id;
+        const userEmail = data.user?.email ?? email;
 
-        console.log('[v0] Cadastro bem-sucedido:', data.user.email);
-        
-        const { error: insertError } = await supabase
-          .from('users')
-          .insert({
-            id: data.user.id,
-            email,
-            full_name: fullName
-          });
+        if (userId) {
+          const { error: insertError } = await supabaseClient
+            .from('users')
+            .insert({
+              id: userId,
+              email: userEmail,
+              full_name: fullName
+            });
 
-        if (insertError) {
-          console.warn('[v0] Aviso ao criar entrada de usuário:', insertError);
+          if (insertError) {
+            console.warn('Erro ao criar entrada de usuário:', insertError);
+          }
         }
 
-        messageBox.className = 'message success';
-        messageBox.textContent = 'Cadastro realizado com sucesso! Redirecionando para login...';
-
-        setTimeout(() => {
-          window.location.href = 'login.html';
-        }, 2000);
+        if (data.user) {
+          messageBox.className = 'message success';
+          messageBox.textContent = 'Cadastro realizado com sucesso! Redirecionando para login...';
+          setTimeout(() => {
+            window.location.href = 'login.html';
+          }, 2000);
+        } else {
+          // Caso o Supabase exija confirmação por email, exiba instrução ao usuário
+          messageBox.className = 'message success';
+          messageBox.textContent = 'Inscrição iniciada. Verifique seu email para confirmar a conta.';
+        }
 
       } catch (error) {
-        console.error('[v0] Erro:', error);
+        console.error('Erro:', error);
         messageBox.className = 'message error';
         messageBox.textContent = error.message || 'Erro ao criar conta. Tente novamente.';
       } finally {
         loadingDiv.style.display = 'none';
+        const signupBtn = document.getElementById('signupBtn');
+        if (signupBtn) signupBtn.disabled = false;
       }
     });
 
     window.addEventListener('load', async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await supabaseClient.auth.getSession();
         if (session) {
-          console.log('[v0] Usuário já está logado');
+          console.log('Usuário já está logado');
           window.location.href = 'dashboard.html';
         }
       } catch (error) {
-        console.error('[v0] Erro ao verificar sessão:', error);
+        console.error('Erro ao verificar sessão:', error);
       }
     });
   </script>

@@ -43,23 +43,54 @@ CREATE TABLE IF NOT EXISTS alerts (
   updated_at TIMESTAMP DEFAULT NOW()
 );
 
+-- Criar tabela de ações de controle
+CREATE TABLE IF NOT EXISTS registro_acoes (
+  id BIGSERIAL PRIMARY KEY,
+  usuario_email TEXT NOT NULL,
+  acao TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- Criar índices para melhor performance
-CREATE INDEX idx_devices_user_id ON devices(user_id);
-CREATE INDEX idx_temperature_readings_device_id ON temperature_readings(device_id);
-CREATE INDEX idx_temperature_readings_created_at ON temperature_readings(created_at DESC);
-CREATE INDEX idx_alerts_user_id ON alerts(user_id);
-CREATE INDEX idx_alerts_device_id ON alerts(device_id);
-CREATE INDEX idx_alerts_is_read ON alerts(is_read);
+CREATE INDEX IF NOT EXISTS idx_devices_user_id ON devices(user_id);
+CREATE INDEX IF NOT EXISTS idx_temperature_readings_device_id ON temperature_readings(device_id);
+CREATE INDEX IF NOT EXISTS idx_temperature_readings_created_at ON temperature_readings(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_alerts_user_id ON alerts(user_id);
+CREATE INDEX IF NOT EXISTS idx_alerts_device_id ON alerts(device_id);
+CREATE INDEX IF NOT EXISTS idx_alerts_is_read ON alerts(is_read);
 
 -- Habilitar Row Level Security (RLS)
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE devices ENABLE ROW LEVEL SECURITY;
 ALTER TABLE temperature_readings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE alerts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE registro_acoes ENABLE ROW LEVEL SECURITY;
+
+-- Remover políticas antigas para reexecução segura
+DROP POLICY IF EXISTS "Usuários podem ver seus próprios dados" ON users;
+DROP POLICY IF EXISTS "Usuários podem criar seu próprio perfil" ON users;
+DROP POLICY IF EXISTS "Usuários podem atualizar seus próprios dados" ON users;
+DROP POLICY IF EXISTS "Usuários podem ver seus próprios dispositivos" ON devices;
+DROP POLICY IF EXISTS "Usuários podem criar dispositivos" ON devices;
+DROP POLICY IF EXISTS "Usuários podem atualizar seus dispositivos" ON devices;
+DROP POLICY IF EXISTS "Usuários podem deletar seus dispositivos" ON devices;
+DROP POLICY IF EXISTS "Usuários podem ver leituras de seus dispositivos" ON temperature_readings;
+DROP POLICY IF EXISTS "Sistema pode inserir leituras de temperatura" ON temperature_readings;
+DROP POLICY IF EXISTS "Usuários podem ver seus próprios alertas" ON alerts;
+DROP POLICY IF EXISTS "Sistema pode criar alertas" ON alerts;
+DROP POLICY IF EXISTS "Usuários podem atualizar seus alertas" ON alerts;
+DROP POLICY IF EXISTS "Usuários autenticados podem inserir e ler ações" ON registro_acoes;
+DROP POLICY IF EXISTS "Usuários autenticados podem ler ações" ON registro_acoes;
 
 -- Políticas RLS para users
 CREATE POLICY "Usuários podem ver seus próprios dados" ON users
   FOR SELECT USING (auth.uid() = id);
+
+CREATE POLICY "Usuários podem criar seu próprio perfil" ON users
+  FOR INSERT WITH CHECK (auth.uid() = id);
+
+CREATE POLICY "Usuários podem atualizar seus próprios dados" ON users
+  FOR UPDATE USING (auth.uid() = id);
 
 -- Políticas RLS para devices
 CREATE POLICY "Usuários podem ver seus próprios dispositivos" ON devices
@@ -98,3 +129,10 @@ CREATE POLICY "Sistema pode criar alertas" ON alerts
 
 CREATE POLICY "Usuários podem atualizar seus alertas" ON alerts
   FOR UPDATE USING (auth.uid() = user_id);
+
+-- Políticas para registro_acoes
+CREATE POLICY "Usuários autenticados podem inserir ações" ON registro_acoes
+  FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+CREATE POLICY "Usuários autenticados podem ler ações" ON registro_acoes
+  FOR SELECT USING (auth.role() = 'authenticated');

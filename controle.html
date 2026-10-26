@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Controle - Thermite</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+      color: #e0e7ff;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 0;
+      border-bottom: 1px solid rgba(34, 197, 194, 0.2);
+    }
+
+    .logo {
+      font-size: 1.8rem;
+      font-weight: bold;
+      background: linear-gradient(135deg, #22c55e 0%, #06b6d4 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .nav {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .nav a {
+      color: #e0e7ff;
+      text-decoration: none;
+      padding: 0.75rem 1rem;
+      border-radius: 0.75rem;
+      background: rgba(15, 23, 42, 0.8);
+      transition: all 0.3s;
+    }
+
+    .nav a:hover,
+    .nav a.active {
+      background: rgba(34, 197, 194, 0.3);
+      color: #22c55e;
+    }
+
+    .status-bar {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      align-items: center;
+      margin: 1.5rem 0;
+    }
+
+    .status-card {
+      background: rgba(30, 41, 59, 0.7);
+      border: 1px solid rgba(34, 197, 194, 0.2);
+      border-radius: 1rem;
+      padding: 1rem 1.5rem;
+      min-width: 200px;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .status-card strong {
+      color: #22c55e;
+      font-size: 0.95rem;
+    }
+
+    .status-card span {
+      color: #a5b4fc;
+      font-size: 0.95rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+      margin-top: 1rem;
+    }
+
+    .card {
+      background: rgba(30, 41, 59, 0.7);
+      border: 1px solid rgba(34, 197, 194, 0.2);
+      border-radius: 1rem;
+      padding: 1.5rem;
+      backdrop-filter: blur(10px);
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .card h2 {
+      color: #22c55e;
+      font-size: 1.2rem;
+    }
+
+    .buttons {
+      display: grid;
+      gap: 0.75rem;
+    }
+
+    .button-row {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 0.9rem 1rem;
+      border: none;
+      border-radius: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      min-width: 130px;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #22c55e 0%, #06b6d4 100%);
+      color: #0a0e27;
+    }
+
+    .btn-secondary {
+      background: transparent;
+      border: 2px solid #22c55e;
+      color: #e0e7ff;
+    }
+
+    .btn-danger {
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      color: #fff;
+    }
+
+    .alert {
+      padding: 1rem;
+      border-radius: 0.75rem;
+      border: 1px solid rgba(34, 197, 194, 0.3);
+      background: rgba(15, 23, 42, 0.8);
+      color: #a5b4fc;
+      min-height: 2.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .alert.success {
+      border-color: rgba(34, 197, 94, 0.5);
+      color: #86efac;
+    }
+
+    .alert.error {
+      border-color: rgba(239, 68, 68, 0.5);
+      color: #fca5a5;
+    }
+
+    .distance-card {
+      text-align: center;
+      padding: 1.5rem;
+      border-radius: 1rem;
+      border: 1px solid rgba(34, 197, 194, 0.2);
+      background: rgba(15, 23, 42, 0.8);
+    }
+
+    .distance-card span {
+      display: block;
+      font-size: 3rem;
+      font-weight: 700;
+      color: #22c55e;
+      margin-top: 0.75rem;
+    }
+
+    footer {
+      text-align: center;
+      color: #a5b4fc;
+      margin-top: 3rem;
+      font-size: 0.95rem;
+    }
+
+    @media (max-width: 760px) {
+      .status-bar,
+      .button-row {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="logo">Thermite</div>
+      <nav class="nav">
+        <a href="dashboard.html">Dashboard</a>
+        <a href="controle.html" class="active">Controle</a>
+        <a href="index.html">Início</a>
+      </nav>
+    </header>
+
+    <section class="status-bar">
+      <div class="status-card">
+        <strong>Usuário</strong>
+        <span id="userEmail">carregando...</span>
+      </div>
+      <div class="status-card">
+        <strong>Status MQTT</strong>
+        <span id="mqttStatus">Desconectado</span>
+      </div>
+      <div class="status-card">
+        <strong>Sensor HC-SR04</strong>
+        <span id="sensorStatus">Desativado</span>
+      </div>
+    </section>
+
+    <div class="alert" id="messageBox">Bem-vindo ao painel de controle.</div>
+
+    <div class="grid">
+      <div class="card">
+        <h2>LED Verde</h2>
+        <div class="button-row">
+          <button class="btn btn-primary" id="ledGreenOn">Ligar</button>
+          <button class="btn btn-secondary" id="ledGreenOff">Desligar</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>LED Vermelho</h2>
+        <div class="button-row">
+          <button class="btn btn-primary" id="ledRedOn">Ligar</button>
+          <button class="btn btn-secondary" id="ledRedOff">Desligar</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>LED Amarelo</h2>
+        <div class="button-row">
+          <button class="btn btn-primary" id="ledYellowOn">Ligar</button>
+          <button class="btn btn-secondary" id="ledYellowOff">Desligar</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>HC-SR04</h2>
+        <div class="button-row">
+          <button class="btn btn-primary" id="sensorOn">Ativar Sensor</button>
+          <button class="btn btn-danger" id="sensorOff">Desativar Sensor</button>
+        </div>
+      </div>
+
+      <div class="card distance-card" id="distanceCard" style="display:none;">
+        <h2>Distância Atual</h2>
+        <span id="distanceValue">--</span>
+        <span>cm</span>
+      </div>
+    </div>
+
+    <footer>
+      <div>&copy; Thermite - Controle IoT</div>
+    </footer>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://lbtnzygqdotxxkgsyeng.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxidG56eWdxZG90eHhrZ3N5ZW5nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3NTg4NjQsImV4cCI6MjEwMTMzNDg2NH0.ErngBpmCGdEUiMq081lF9n8UtWm6e-M8ESmsAh4PH_Q';
+
+    const MQTT_BROKER = 'wss://broker.emqx.io:8084/mqtt';
+    const COMMAND_TOPIC = 'iot/comando';
+    const DISTANCE_TOPIC = 'iot/distancia';
+
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let currentUser = null;
+    let mqttClient = null;
+    let mqttConnected = false;
+    let sensorActive = false;
+
+    const userEmailEl = document.getElementById('userEmail');
+    const mqttStatusEl = document.getElementById('mqttStatus');
+    const sensorStatusEl = document.getElementById('sensorStatus');
+    const messageBox = document.getElementById('messageBox');
+    const distanceCard = document.getElementById('distanceCard');
+    const distanceValue = document.getElementById('distanceValue');
+
+    window.addEventListener('load', async () => {
+      await checkAuth();
+      connectMQTT();
+      attachButtonEvents();
+    });
+
+    async function checkAuth() {
+      try {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (!session || !session.user) {
+          window.location.href = 'login.html';
+          return;
+        }
+
+        currentUser = session.user;
+        userEmailEl.textContent = currentUser.email;
+      } catch (error) {
+        console.error('Erro ao verificar autenticação:', error);
+        window.location.href = 'login.html';
+      }
+    }
+
+    function connectMQTT() {
+      mqttClient = mqtt.connect(MQTT_BROKER, {
+        clientId: 'web-control-' + Math.random().toString(16).substr(2, 8),
+        clean: true,
+        reconnectPeriod: 2000,
+        connectTimeout: 10000
+      });
+
+      mqttClient.on('connect', () => {
+        mqttConnected = true;
+        mqttStatusEl.textContent = 'Conectado';
+        mqttStatusEl.style.color = '#86efac';
+        mqttClient.subscribe(DISTANCE_TOPIC, (err) => {
+          if (err) console.warn('Erro ao inscrever no tópico de distância:', err);
+        });
+      });
+
+      mqttClient.on('reconnect', () => {
+        mqttStatusEl.textContent = 'Reconectando...';
+        mqttStatusEl.style.color = '#facc15';
+      });
+
+      mqttClient.on('disconnect', () => {
+        mqttConnected = false;
+        mqttStatusEl.textContent = 'Desconectado';
+        mqttStatusEl.style.color = '#fca5a5';
+      });
+
+      mqttClient.on('error', (err) => {
+        mqttConnected = false;
+        mqttStatusEl.textContent = 'Erro de MQTT';
+        mqttStatusEl.style.color = '#fca5a5';
+        console.error('MQTT error:', err);
+      });
+
+      mqttClient.on('message', (topic, payload) => {
+        if (topic !== DISTANCE_TOPIC) return;
+        const value = payload.toString();
+        updateDistance(value);
+      });
+    }
+
+    function attachButtonEvents() {
+      document.getElementById('ledGreenOn').addEventListener('click', () => handleControl('Ligar LED Verde', 'ligar_led_verde'));
+      document.getElementById('ledGreenOff').addEventListener('click', () => handleControl('Desligar LED Verde', 'desligar_led_verde'));
+      document.getElementById('ledRedOn').addEventListener('click', () => handleControl('Ligar LED Vermelho', 'ligar_led_vermelho'));
+      document.getElementById('ledRedOff').addEventListener('click', () => handleControl('Desligar LED Vermelho', 'desligar_led_vermelho'));
+      document.getElementById('ledYellowOn').addEventListener('click', () => handleControl('Ligar LED Amarelo', 'ligar_led_amarelo'));
+      document.getElementById('ledYellowOff').addEventListener('click', () => handleControl('Desligar LED Amarelo', 'desligar_led_amarelo'));
+      document.getElementById('sensorOn').addEventListener('click', () => handleSensor(true));
+      document.getElementById('sensorOff').addEventListener('click', () => handleSensor(false));
+    }
+
+    async function handleControl(actionText, commandText) {
+      await logAction(actionText);
+      const published = await publishCommand(commandText);
+      if (published) {
+        showMessage(`Comando enviado: ${actionText}`, 'success');
+      } else {
+        showMessage(`Falha ao enviar comando: ${actionText}`, 'error');
+      }
+    }
+
+    async function handleSensor(enable) {
+      const actionText = enable ? 'Ativar Sensor' : 'Desativar Sensor';
+      await logAction(actionText);
+      const commandText = enable ? 'ativar_sensor' : 'desativar_sensor';
+      const published = await publishCommand(commandText);
+
+      if (published) {
+        sensorActive = enable;
+        sensorStatusEl.textContent = enable ? 'Ativado' : 'Desativado';
+        sensorStatusEl.style.color = enable ? '#86efac' : '#fca5a5';
+        distanceCard.style.display = enable ? 'block' : 'none';
+        if (!enable) {
+          distanceValue.textContent = '--';
+        }
+        showMessage(`Sensor ${enable ? 'ativado' : 'desativado'} com sucesso.`, 'success');
+      } else {
+        showMessage(`Falha ao ${enable ? 'ativar' : 'desativar'} sensor.`, 'error');
+      }
+    }
+
+    async function publishCommand(commandText) {
+      if (!mqttConnected || !mqttClient) {
+        console.warn('MQTT não conectado');
+        return false;
+      }
+
+      try {
+        mqttClient.publish(COMMAND_TOPIC, commandText);
+        return true;
+      } catch (error) {
+        console.error('Erro ao publicar comando:', error);
+        return false;
+      }
+    }
+
+    async function logAction(actionText) {
+      if (!currentUser || !currentUser.email) return;
+
+      const { error } = await supabaseClient
+        .from('registro_acoes')
+        .insert({
+          usuario_email: currentUser.email,
+          acao: actionText
+        });
+
+      if (error) {
+        console.error('Erro ao registrar ação:', error);
+      }
+    }
+
+    function updateDistance(value) {
+      if (!sensorActive) return;
+      distanceValue.textContent = value;
+      showMessage('Distância atualizada.', 'success');
+    }
+
+    function showMessage(text, type = 'success') {
+      messageBox.textContent = text;
+      messageBox.className = `alert ${type}`;
+    }
+  </script>
+</body>
+</html>
